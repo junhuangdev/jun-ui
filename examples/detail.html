@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>jun-ui Detail</title>
+    <script type="module" src="https://jspm.dev/@spectrum-web-components/bundle/elements.js"></script>
+    <link rel="stylesheet" href="../jun-ui.css">
+    <script type="module" src="../jun-ui.js"></script>
+  </head>
+  <body>
+    <sp-theme system="spectrum" color="light" scale="medium">
+      <jui-app-shell>
+        <jui-page-header heading="Static Page Stack" subheading="Design-system-first no-build frontend default">
+          <sp-button slot="actions" variant="secondary">Copy Link</sp-button>
+        </jui-page-header>
+
+        <div class="jui-grid" data-density="wide">
+          <jui-panel>
+            <jui-section-title heading="Decision" subheading="Default to jun-ui for static product pages"></jui-section-title>
+            <p>
+              Use jun-ui page patterns before choosing ad hoc components or a full build pipeline.
+            </p>
+          </jui-panel>
+
+          <jui-panel>
+            <jui-section-title heading="Fallbacks" subheading="Keep alternatives explicit"></jui-section-title>
+            <ul class="jui-list">
+              <li>Web Awesome for freer lightweight pages</li>
+              <li>Bootstrap 5 for compatibility or utility speed</li>
+              <li>Custom CSS for page-specific polish</li>
+            </ul>
+          </jui-panel>
+        </div>
+
+        <jui-empty-state heading="No unresolved design gaps" message="Add a new pattern only after the current templates fail a real page."></jui-empty-state>
+      </jui-app-shell>
+    </sp-theme>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "name": "@junhuangdev/jun-ui",
+  "version": "0.1.0",
+  "description": "A no-build static-page design system and component wrapper for fast HTML-first tools.",
+  "type": "module",
+  "private": false,
+  "homepage": "https://github.com/junhuangdev/jun-ui#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/junhuangdev/jun-ui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/junhuangdev/jun-ui/issues"
+  },
+  "scripts": {
+    "test": "node scripts/validate.mjs"
+  },
+  "keywords": [
+    "design-system",
+    "web-components",
+    "no-build",
+    "static-html",
+    "spectrum"
+  ],
+  "license": "MIT"
+}
