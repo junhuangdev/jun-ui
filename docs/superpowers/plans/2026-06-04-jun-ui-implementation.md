@@ -82,10 +82,10 @@ Expected: `jun-ui validation passed`.
 
 Serve the repository with `python3 -m http.server 8765` and use Chrome headless to dump DOM for each example and capture a dashboard screenshot.
 
-- [ ] **Step 3: Publish**
+- [x] **Step 3: Publish**
 
 Create public GitHub repo `jun-ui`, commit the library, and push `main`.
 
-- [ ] **Step 4: Update memory**
+- [x] **Step 4: Update memory**
 
 Add an ad-hoc memory note saying future no-build static product pages default to `/Users/jun/workspace/jun-ui`.
