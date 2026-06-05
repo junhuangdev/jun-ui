@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { lstat, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -70,6 +70,9 @@ const requiredCombinedTerms = [
   "context7-docs",
   "context7-cli",
   "jun-ui doctor --strict",
+  "fileName",
+  "assetsDir",
+  "actions",
 ];
 
 const staleTerms = [
@@ -261,6 +264,75 @@ try {
 } finally {
   await rm(expectedRelativeOutDir, { recursive: true, force: true });
   await rm(misplacedRelativeOutDir, { recursive: true, force: true });
+}
+
+let actionSmokeRoot;
+try {
+  actionSmokeRoot = await mkdtemp(path.join(tmpdir(), "jun-ui-action-smoke-"));
+  const actionConfig = path.join(actionSmokeRoot, "jun-ui-action.page.json");
+  const actionOutDir = path.join(actionSmokeRoot, "site");
+  await mkdir(actionOutDir, { recursive: true });
+  await writeFile(path.join(actionOutDir, "keep.json"), '{"keep":true}\n', "utf8");
+  await writeFile(
+    actionConfig,
+    JSON.stringify(
+      {
+        type: "personal-ops-today",
+        title: "Action Smoke",
+        description: "Verify action cards and fixed output filename.",
+        lang: "zh-CN",
+        out: actionOutDir,
+        fileName: "today.html",
+        assetsDir: "today-assets",
+        metrics: [{ label: "Action", value: "copy", note: "Prompt copy smoke." }],
+        sections: [{ title: "Fallback Body", body: "Static fallback body text.", items: ["Fallback item"] }],
+        actions: [
+          {
+            action_id: "refresh_today",
+            label: "重新对账并刷新日报",
+            role: "Ops Router",
+            intent: "主动触发一次 repo 对账、项目发现和 Today 报表重刷。",
+            send_to: "Personal Ops 线程",
+            cadence_hint: "需要时手动触发",
+            prompt: "Personal Ops action: refresh_today",
+            tone: "primary",
+          },
+        ],
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+  await execFileAsync(process.execPath, [path.join(root, "scripts/jun-ui.mjs"), "build", actionConfig]);
+  const actionHtmlPath = path.join(actionOutDir, "today.html");
+  const actionHtml = await readFile(actionHtmlPath, "utf8");
+  if (!(await fileExists(path.join(actionOutDir, "keep.json")))) {
+    errors.push("builder action smoke must preserve sibling files when using fileName");
+  }
+  if (await fileExists(path.join(actionOutDir, "index.html"))) {
+    errors.push("builder action smoke must honor fileName instead of also writing index.html");
+  }
+  for (const expected of [
+    "data-jun-ui-actions",
+    "refresh_today",
+    "重新对账并刷新日报",
+    "Static fallback body text.",
+    'data-action-id="refresh_today"',
+    "Personal Ops action: refresh_today",
+    "promptOutput",
+    '<script src="./today-assets/',
+  ]) {
+    if (!actionHtml.includes(expected)) {
+      errors.push(`builder action smoke missing ${expected}`);
+    }
+  }
+} catch (error) {
+  errors.push(`builder action smoke failed: ${error.message}`);
+} finally {
+  if (actionSmokeRoot) {
+    await rm(actionSmokeRoot, { recursive: true, force: true });
+  }
 }
 
 const shouldCheckGlobalSkill = homedir() === "/Users/jun" || process.env.JUN_UI_REQUIRE_GLOBAL_SKILL === "1";

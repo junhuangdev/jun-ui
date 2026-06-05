@@ -87,6 +87,25 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+function resolveOutputFileName(config) {
+  const fileName = String(config.fileName || "index.html").trim();
+  if (!fileName || path.isAbsolute(fileName) || fileName.includes("/") || fileName.includes("\\")) {
+    throw new Error('Config field "fileName" must be a simple HTML filename');
+  }
+  if (!fileName.endsWith(".html")) {
+    throw new Error('Config field "fileName" must end with .html');
+  }
+  return fileName;
+}
+
+function resolveAssetsDir(config) {
+  const assetsDir = String(config.assetsDir || "assets").trim();
+  if (!assetsDir || path.isAbsolute(assetsDir) || assetsDir.split(/[\\/]/).includes("..")) {
+    throw new Error('Config field "assetsDir" must be a relative asset directory');
+  }
+  return assetsDir.split(/[\\/]/).filter(Boolean).join("/");
+}
+
 function renderFinalIndexHtml(config, { jsFiles, cssFiles }) {
   const title = assertString(config.title, "title");
   const pageType = assertString(config.type, "type");
@@ -120,6 +139,7 @@ function renderStaticFallback(config) {
   const description = config.description || "Built with jun-ui and Semi Design System.";
   const metrics = Array.isArray(config.metrics) ? config.metrics : [];
   const sections = Array.isArray(config.sections) ? config.sections : [];
+  const actions = Array.isArray(config.actions) ? config.actions : [];
 
   return `    <main class="jun-ui-shell" data-jun-ui-static-fallback>
       <header class="jun-ui-header">
@@ -136,25 +156,31 @@ ${metrics
     (metric) => `        <article class="jun-ui-card">
           <span class="jun-ui-muted">${escapeHtml(metric.label)}</span>
           <strong>${escapeHtml(metric.value)}</strong>
-          ${metric.note ? `<p class="jun-ui-muted">${escapeHtml(metric.note)}</p>` : ""}
+${renderOptionalMutedParagraph(metric.note)}
         </article>`,
   )
   .join("\n")}
       </section>
       <section class="jun-ui-stack" aria-label="Sections">
-${sections
-  .map(
-    (section) => `        <article class="jun-ui-section">
+${sections.map((section) => renderStaticSection(section)).join("\n")}
+      </section>
+${renderStaticActions(actions)}
+    </main>`;
+}
+
+function renderOptionalMutedParagraph(value) {
+  return value ? `          <p class="jun-ui-muted">${escapeHtml(value)}</p>` : "";
+}
+
+function renderStaticSection(section) {
+  const body = section.body || section.description || "";
+  return `        <article class="jun-ui-section">
           <h2>${escapeHtml(section.title)}</h2>
-          ${section.description ? `<p class="jun-ui-muted">${escapeHtml(section.description)}</p>` : ""}
+${renderOptionalMutedParagraph(body)}
           <ul>
 ${renderStaticItems(section.items)}
           </ul>
-        </article>`,
-  )
-  .join("\n")}
-      </section>
-    </main>`;
+        </article>`;
 }
 
 function renderStaticItems(items) {
@@ -163,6 +189,37 @@ function renderStaticItems(items) {
     return '            <li class="jun-ui-muted">No items configured.</li>';
   }
   return safeItems.map((item) => `            <li>${escapeHtml(item)}</li>`).join("\n");
+}
+
+function renderStaticActions(actions) {
+  if (!actions.length) return "";
+  return `      <section class="jun-ui-stack" data-jun-ui-actions aria-label="Actions">
+        <div>
+          <h2>Actions</h2>
+          <p class="jun-ui-muted">Copy an action prompt and send it to the expected Codex thread.</p>
+        </div>
+        <div class="jun-ui-action-grid">
+${actions.map((action) => renderStaticAction(action)).join("\n")}
+        </div>
+        <textarea id="promptOutput" class="jun-ui-prompt-output" readonly placeholder="Choose an action to generate a prompt."></textarea>
+      </section>`;
+}
+
+function renderStaticAction(action) {
+  const prompt = escapeHtml(action.prompt || "");
+  const actionId = escapeHtml(action.action_id || action.id || "");
+  const sendTo = escapeHtml(action.send_to || "");
+  return `          <article class="jun-ui-action-card" data-action="${actionId}">
+            <div class="jun-ui-action-head">
+              <strong>${escapeHtml(action.label || actionId || "Action")}</strong>
+              ${action.role ? `<span>${escapeHtml(action.role)}</span>` : ""}
+            </div>
+            ${action.subject ? `<h3>${escapeHtml(action.subject)}</h3>` : ""}
+            ${action.intent ? `<p>${escapeHtml(action.intent)}</p>` : ""}
+            ${sendTo ? `<p class="jun-ui-muted">Send to: ${sendTo}</p>` : ""}
+            ${action.cadence_hint ? `<p class="jun-ui-muted">${escapeHtml(action.cadence_hint)}</p>` : ""}
+            <button type="button" data-prompt="${prompt}" data-send-to="${sendTo}" data-action-id="${actionId}">复制指令</button>
+          </article>`;
 }
 
 function renderReactSource(config) {
@@ -183,9 +240,40 @@ function asArray(value) {
 
 function App() {
   const [inspected, setInspected] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [copiedAction, setCopiedAction] = useState("");
   const metrics = asArray(pageConfig.metrics);
   const sections = asArray(pageConfig.sections);
+  const actions = asArray(pageConfig.actions);
   const generatedAt = new Date().toISOString();
+
+  async function copyActionPrompt(action) {
+    const rawPrompt = action.prompt || "";
+    const shouldAddDispatch = action.send_to && !rawPrompt.startsWith("建议发送到：");
+    const dispatch = shouldAddDispatch ? \`建议发送到：\${action.send_to}\\n\\n\` : "";
+    const combined = \`\${dispatch}\${rawPrompt}\`;
+    setPrompt(combined);
+    let copied = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(combined);
+        copied = true;
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = combined;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        copied = document.execCommand("copy");
+        textarea.remove();
+      }
+    } catch {
+      copied = false;
+    }
+    setCopiedAction(copied ? action.action_id || action.id || "" : "");
+  }
 
   return (
     <main className="jun-ui-shell" data-jun-ui-react-artifact>
@@ -250,6 +338,48 @@ function App() {
           </Card>
         )}
       </section>
+
+      {actions.length > 0 ? (
+        <section className="jun-ui-stack" data-jun-ui-actions aria-label="Actions">
+          <div>
+            <h2>Actions</h2>
+            <p className="jun-ui-muted">Copy an action prompt and send it to the expected Codex thread.</p>
+          </div>
+          <div className="jun-ui-action-grid">
+            {actions.map((action, index) => {
+              const actionId = action.action_id || action.id || \`action-\${index}\`;
+              const isCopied = copiedAction === actionId;
+              return (
+                <Card key={actionId} className={\`jun-ui-action-card \${action.tone || ""}\`.trim()} data-action-id={actionId}>
+                  <div className="jun-ui-action-head">
+                    <strong>{action.label || actionId}</strong>
+                    {action.role ? <Tag color="grey">{action.role}</Tag> : null}
+                  </div>
+                  {action.subject ? <h3>{action.subject}</h3> : null}
+                  {action.intent ? <p>{action.intent}</p> : null}
+                  {action.send_to ? <p className="jun-ui-muted">Send to: {action.send_to}</p> : null}
+                  {action.cadence_hint ? <p className="jun-ui-muted">{action.cadence_hint}</p> : null}
+                  <Button
+                    data-action-id={actionId}
+                    theme="solid"
+                    type={action.tone === "primary" ? "primary" : "tertiary"}
+                    onClick={() => copyActionPrompt(action)}
+                  >
+                    {isCopied ? "已复制" : "复制指令"}
+                  </Button>
+                </Card>
+              );
+            })}
+          </div>
+          <textarea
+            id="promptOutput"
+            className="jun-ui-prompt-output"
+            readOnly
+            value={prompt}
+            placeholder="Choose an action to generate a prompt."
+          />
+        </section>
+      ) : null}
 
       <footer>
         <p className="jun-ui-muted">Generated {generatedAt}. Runtime dependencies are bundled into this artifact.</p>
@@ -366,6 +496,47 @@ h2 {
   padding-left: 18px;
 }
 
+.jun-ui-action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.jun-ui-action-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  border-top: 4px solid var(--jun-ui-line);
+}
+
+.jun-ui-action-card.primary {
+  border-top-color: var(--jun-ui-accent);
+}
+
+.jun-ui-action-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.jun-ui-action-card button {
+  width: 100%;
+}
+
+.jun-ui-prompt-output {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  border: 1px solid var(--jun-ui-line);
+  border-radius: var(--jun-ui-radius);
+  background: var(--jun-ui-panel);
+  color: var(--jun-ui-ink);
+  padding: 10px 12px;
+  font: inherit;
+  line-height: 1.45;
+}
+
 footer {
   margin-top: 18px;
 }
@@ -419,8 +590,8 @@ async function listBuiltFiles(dir, prefix = "") {
   return files;
 }
 
-async function moveRootAssetsToAssetsDir(outDir) {
-  const assetDir = path.join(outDir, "assets");
+async function moveRootAssetsToAssetsDir(outDir, assetsDir) {
+  const assetDir = path.join(outDir, assetsDir);
   await mkdir(assetDir, { recursive: true });
   const entries = await readdir(outDir, { withFileTypes: true });
   for (const entry of entries) {
@@ -431,7 +602,7 @@ async function moveRootAssetsToAssetsDir(outDir) {
   }
 }
 
-async function buildSemiArtifact({ config, outDir }) {
+async function buildSemiArtifact({ config, outDir, outputFileName, assetsDir }) {
   const tempBase = path.join(repoRoot, "tmp");
   await mkdir(tempBase, { recursive: true });
   const tempRoot = await mkdtemp(path.join(tempBase, "jun-ui-semi-build-"));
@@ -455,7 +626,7 @@ async function buildSemiArtifact({ config, outDir }) {
       },
       build: {
         outDir: tempOutDir,
-        assetsDir: "assets",
+        assetsDir,
         emptyOutDir: true,
         lib: {
           entry: path.join(tempRoot, "src", "main.jsx"),
@@ -466,17 +637,20 @@ async function buildSemiArtifact({ config, outDir }) {
         },
       },
     });
-    await moveRootAssetsToAssetsDir(tempOutDir);
+    await moveRootAssetsToAssetsDir(tempOutDir, assetsDir);
     const builtFiles = await listBuiltFiles(tempOutDir);
     const jsFiles = builtFiles.filter((file) => file.endsWith(".js")).sort();
     const cssFiles = builtFiles.filter((file) => file.endsWith(".css")).sort();
     if (jsFiles.length === 0 || cssFiles.length === 0) {
       throw new Error("Semi Builder did not produce JavaScript and CSS assets");
     }
-    await writeFile(path.join(tempOutDir, "index.html"), renderFinalIndexHtml(config, { jsFiles, cssFiles }), "utf8");
-    await rm(outDir, { recursive: true, force: true });
-    await mkdir(path.dirname(outDir), { recursive: true });
-    await cp(tempOutDir, outDir, { recursive: true });
+    await writeFile(path.join(tempOutDir, outputFileName), renderFinalIndexHtml(config, { jsFiles, cssFiles }), "utf8");
+    await mkdir(outDir, { recursive: true });
+    await rm(path.join(outDir, outputFileName), { force: true });
+    await rm(path.join(outDir, assetsDir), { recursive: true, force: true });
+    await cp(path.join(tempOutDir, outputFileName), path.join(outDir, outputFileName));
+    await mkdir(path.dirname(path.join(outDir, assetsDir)), { recursive: true });
+    await cp(path.join(tempOutDir, assetsDir), path.join(outDir, assetsDir), { recursive: true });
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
@@ -490,10 +664,12 @@ async function build(argv) {
   const configPath = path.resolve(projectRoot || process.cwd(), configArg);
   const config = await readJson(configPath);
   const outDir = resolveOutDir({ config, flags, configPath, projectRoot });
+  const outputFileName = resolveOutputFileName(config);
+  const assetsDir = resolveAssetsDir(config);
   assertString(config.title, "title");
   assertString(config.type, "type");
-  await buildSemiArtifact({ config, outDir });
-  console.log(`Built ${path.join(outDir, "index.html")}`);
+  await buildSemiArtifact({ config, outDir, outputFileName, assetsDir });
+  console.log(`Built ${path.join(outDir, outputFileName)}`);
 }
 
 async function doctor(argv) {

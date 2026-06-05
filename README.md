@@ -74,7 +74,9 @@ node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs build <config.json>
 
 The target project provides page intent, data, and an output path. `jun-ui` owns the builder environment and writes back the final file-openable artifact.
 
-Current Builder output uses Semi Design System components bundled by Vite into classic IIFE JavaScript and CSS. The generated HTML keeps relative `./assets/` paths and includes a static fallback so the page is nonblank even before JavaScript runs through `file://`.
+Current Builder output uses Semi Design System components bundled by Vite into classic IIFE JavaScript and CSS. The generated HTML keeps relative asset paths and includes a static fallback so the page is nonblank even before JavaScript runs through `file://`.
+
+The default output is `index.html` plus `assets/`, but a target project can set `fileName`, `assetsDir`, and `actions` in its page config. This supports workflow entry pages such as `site/today.html` with `site/today-assets/` while preserving sibling files like `site/today.json`.
 
 ## Context7 Setup
 

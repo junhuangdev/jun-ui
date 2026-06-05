@@ -56,7 +56,7 @@ ctx7 skills install /upstash/context7 context7-cli --global --universal --yes
 
 ## Current Builder Slice
 
-The current Builder uses Vite library mode to bundle React and Semi Design System into classic IIFE JavaScript plus CSS. It writes a final `index.html` with relative `./assets/` paths and a static fallback inside `#jun-ui-root`, so the page is visible through `file://` before React takes over.
+The current Builder uses Vite library mode to bundle React and Semi Design System into classic IIFE JavaScript plus CSS. It writes a final HTML file with relative asset paths and a static fallback inside `#jun-ui-root`, so the page is visible through `file://` before React takes over.
 
 The `jun-ui build` interface stays stable:
 
@@ -68,5 +68,41 @@ Rules:
 
 - `config.out` resolves from the target project root when provided, otherwise from the config file directory.
 - `--out` overrides `config.out` and resolves from the current working directory, or from `--project-root` when provided.
+- `config.fileName` can set a simple HTML filename such as `today.html`; default is `index.html`.
+- `config.assetsDir` can set a relative asset directory such as `today-assets`; default is `assets`.
+- `config.actions` can add prompt-copy action cards for local workbenches and workflow entry pages.
+- The Builder replaces only the target HTML file and the selected asset directory, so sibling files such as JSON reports stay intact.
 - Vite, React, and Semi dependencies stay in `jun-ui`; target projects receive only built HTML, CSS, and JavaScript.
 - The browser output must not require module scripts, a dev server, Context7, or Figma.
+
+## Config Shape
+
+```json
+{
+  "type": "personal-ops-today",
+  "title": "Personal Ops V1 今日入口",
+  "description": "2026-06-05 · 工作流 V1",
+  "lang": "zh-CN",
+  "out": "site",
+  "fileName": "today.html",
+  "assetsDir": "today-assets",
+  "metrics": [
+    { "label": "主推", "value": "dubforge", "note": "today's focus" }
+  ],
+  "sections": [
+    { "title": "今日结论", "body": "Start with the smallest useful action.", "items": ["Read source data first"] }
+  ],
+  "actions": [
+    {
+      "action_id": "refresh_today",
+      "label": "重新对账并刷新日报",
+      "role": "Ops Router",
+      "intent": "Refresh the local report without writing backend state.",
+      "send_to": "Personal Ops 线程",
+      "cadence_hint": "需要时手动触发",
+      "prompt": "Personal Ops action: refresh_today",
+      "tone": "primary"
+    }
+  ]
+}
+```

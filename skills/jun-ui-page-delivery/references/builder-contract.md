@@ -14,7 +14,7 @@ From the source checkout:
 node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs build <config.json>
 ```
 
-The current Builder bundles React and Semi Design System through Vite into classic IIFE JavaScript plus CSS. The final `index.html` uses relative `./assets/` paths and includes a static fallback so it is visible through `file://` before React takes over.
+The current Builder bundles React and Semi Design System through Vite into classic IIFE JavaScript plus CSS. The final HTML file uses relative asset paths and includes a static fallback so it is visible through `file://` before React takes over.
 
 ## Division Of Responsibility
 
@@ -63,3 +63,11 @@ Minimum fields:
 ```
 
 Optional fields such as `description`, `metrics`, and `sections` can guide the initial artifact. Target projects can create this config manually, or AI can create it during the first jun-ui page task.
+
+Useful optional fields:
+
+- `fileName`: simple HTML filename such as `today.html`; default is `index.html`.
+- `assetsDir`: relative asset directory such as `today-assets`; default is `assets`.
+- `actions`: prompt-copy action cards for workbenches and workflow entry pages.
+
+When `fileName` or `assetsDir` are used, the Builder replaces only that HTML file and that asset directory. It must preserve sibling files in the output directory, such as `today.json` or other reports owned by the target project.
