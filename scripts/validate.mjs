@@ -8,6 +8,7 @@ const root = process.cwd();
 
 const requiredFiles = [
   "README.md",
+  "AGENTS.md",
   "LICENSE",
   "jun-ui.css",
   "jun-ui.js",
@@ -42,6 +43,7 @@ for (const file of requiredFiles) {
 const css = await requireFile("jun-ui.css");
 const js = await requireFile("jun-ui.js");
 const readme = await requireFile("README.md");
+const agents = await requireFile("AGENTS.md");
 const designDoc = await requireFile("docs/design-system.md");
 const vendor = await requireFile("vendor/spectrum.html");
 const skill = await requireFile("skills/jun-ui-static-pages/SKILL.md");
@@ -95,6 +97,17 @@ for (const required of ["jun-ui.css", "jun-ui.js", "Spectrum Web Components", "W
 }
 if (!skillReference.includes("<jui-app-shell>") || !skillReference.includes("<jui-panel>")) {
   errors.push("jun-ui skill reference must include core jui element examples");
+}
+
+for (const required of [
+  "jun-ui.css",
+  "jun-ui.js",
+  "Spectrum Web Components",
+  "Context7",
+  "npm test",
+  "skills/jun-ui-static-pages/SKILL.md",
+]) {
+  if (!agents.includes(required)) errors.push(`AGENTS.md missing ${required}`);
 }
 
 const shouldCheckGlobalSkill = homedir() === "/Users/jun" || process.env.JUN_UI_REQUIRE_GLOBAL_SKILL === "1";
