@@ -64,6 +64,12 @@ The `jun-ui build` interface stays stable:
 jun-ui build <config.json> [--out <dir>] [--project-root <dir>]
 ```
 
+For an existing target-project workbench that already has its own browser client, use:
+
+```bash
+jun-ui bundle-app <config.json> [--out <dir>] [--project-root <dir>]
+```
+
 Rules:
 
 - `config.out` resolves from the target project root when provided, otherwise from the config file directory.
@@ -106,3 +112,23 @@ Rules:
   ]
 }
 ```
+
+## Bundle-App Config Shape
+
+```json
+{
+  "type": "ai-radar-workbench",
+  "title": "AI 信息雷达工作台",
+  "out": "app/workbench",
+  "fileName": "index.html",
+  "assetsDir": "workbench-assets",
+  "app": {
+    "html": "app/workbench/shell.html",
+    "entry": "src/app.mjs",
+    "styles": ["app/workbench/styles.css"],
+    "dataScripts": ["data/static-data.js"]
+  }
+}
+```
+
+`bundle-app` expects the HTML shell to contain optional `<!-- jun-ui:styles -->` and `<!-- jun-ui:scripts -->` placeholders. It injects bundled CSS, static data scripts, and bundled classic JavaScript there. The target project can generate `data/static-data.js` before calling the Builder so the final folder can run without server fetches.

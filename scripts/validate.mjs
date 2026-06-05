@@ -73,6 +73,7 @@ const requiredCombinedTerms = [
   "fileName",
   "assetsDir",
   "actions",
+  "bundle-app",
 ];
 
 const staleTerms = [
@@ -332,6 +333,103 @@ try {
 } finally {
   if (actionSmokeRoot) {
     await rm(actionSmokeRoot, { recursive: true, force: true });
+  }
+}
+
+let bundleSmokeRoot;
+try {
+  bundleSmokeRoot = await mkdtemp(path.join(tmpdir(), "jun-ui-bundle-smoke-"));
+  const bundleSourceDir = path.join(bundleSmokeRoot, "source");
+  const bundleOutDir = path.join(bundleSmokeRoot, "site");
+  await mkdir(path.join(bundleSourceDir, "src"), { recursive: true });
+  await mkdir(path.join(bundleSourceDir, "app"), { recursive: true });
+  await mkdir(path.join(bundleOutDir, "data"), { recursive: true });
+  await writeFile(path.join(bundleOutDir, "keep.json"), '{"keep":true}\n', "utf8");
+  await writeFile(
+    path.join(bundleOutDir, "data", "static-data.js"),
+    'window.__JUN_UI_BUNDLE_SMOKE__ = { "message": "static data ready" };\n',
+    "utf8",
+  );
+  await writeFile(
+    path.join(bundleSourceDir, "src", "helper.mjs"),
+    'export function message() { return window.__JUN_UI_BUNDLE_SMOKE__.message; }\n',
+    "utf8",
+  );
+  await writeFile(
+    path.join(bundleSourceDir, "src", "app.mjs"),
+    'import { message } from "./helper.mjs";\ndocument.querySelector("#bundle-output").textContent = message();\n',
+    "utf8",
+  );
+  await writeFile(
+    path.join(bundleSourceDir, "app", "styles.css"),
+    ".bundle-output { color: rgb(18 128 92); }\n",
+    "utf8",
+  );
+  await writeFile(
+    path.join(bundleSourceDir, "app", "shell.html"),
+    '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>Bundle Smoke</title><!-- jun-ui:styles --></head><body><main><p id="bundle-output" class="bundle-output">loading</p></main><!-- jun-ui:scripts --></body></html>\n',
+    "utf8",
+  );
+  const bundleConfig = path.join(bundleSourceDir, "jun-ui.bundle.json");
+  await writeFile(
+    bundleConfig,
+    JSON.stringify(
+      {
+        type: "bundle-smoke",
+        title: "Bundle Smoke",
+        out: bundleOutDir,
+        fileName: "workbench.html",
+        assetsDir: "workbench-assets",
+        app: {
+          html: "app/shell.html",
+          entry: "src/app.mjs",
+          styles: ["app/styles.css"],
+          dataScripts: ["data/static-data.js"],
+        },
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+  await execFileAsync(process.execPath, [
+    path.join(root, "scripts/jun-ui.mjs"),
+    "bundle-app",
+    bundleConfig,
+    "--project-root",
+    bundleSourceDir,
+  ]);
+  const bundleHtml = await readFile(path.join(bundleOutDir, "workbench.html"), "utf8");
+  if (!(await fileExists(path.join(bundleOutDir, "keep.json")))) {
+    errors.push("bundle-app smoke must preserve sibling files");
+  }
+  for (const expected of [
+    "data-jun-ui-artifact",
+    "data-page-type=\"bundle-smoke\"",
+    '<script src="./data/static-data.js"></script>',
+    '<script src="./workbench-assets/',
+    '<link rel="stylesheet" href="./workbench-assets/',
+    "bundle-output",
+  ]) {
+    if (!bundleHtml.includes(expected)) {
+      errors.push(`bundle-app smoke missing ${expected}`);
+    }
+  }
+  if (bundleHtml.includes('type="module"')) {
+    errors.push("bundle-app smoke must not emit module scripts");
+  }
+  const bundleAssets = await readdir(path.join(bundleOutDir, "workbench-assets"));
+  if (!bundleAssets.some((asset) => asset.endsWith(".js"))) {
+    errors.push("bundle-app smoke must include bundled JavaScript");
+  }
+  if (!bundleAssets.some((asset) => asset.endsWith(".css"))) {
+    errors.push("bundle-app smoke must include bundled CSS");
+  }
+} catch (error) {
+  errors.push(`bundle-app smoke failed: ${error.message}`);
+} finally {
+  if (bundleSmokeRoot) {
+    await rm(bundleSmokeRoot, { recursive: true, force: true });
   }
 }
 

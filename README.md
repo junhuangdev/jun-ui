@@ -78,6 +78,14 @@ Current Builder output uses Semi Design System components bundled by Vite into c
 
 The default output is `index.html` plus `assets/`, but a target project can set `fileName`, `assetsDir`, and `actions` in its page config. This supports workflow entry pages such as `site/today.html` with `site/today-assets/` while preserving sibling files like `site/today.json`.
 
+For complex existing workbenches, the Builder also exposes:
+
+```bash
+jun-ui bundle-app <config.json>
+```
+
+`bundle-app` takes a target project's HTML shell, ESM entry, CSS files, and optional static data scripts, then writes a file-openable artifact with classic bundled JavaScript and relative assets. This keeps React, Vite, and build tooling in `jun-ui` instead of the target project.
+
 ## Context7 Setup
 
 Install the AI-side documentation path once:

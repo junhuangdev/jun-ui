@@ -13,6 +13,7 @@ function usage() {
   return [
     "Usage:",
     "  jun-ui build <config.json> [--out <dir>] [--project-root <dir>]",
+    "  jun-ui bundle-app <config.json> [--out <dir>] [--project-root <dir>]",
     "  jun-ui doctor [--strict]",
     "",
     "The build command writes a file-openable artifact with relative assets.",
@@ -104,6 +105,27 @@ function resolveAssetsDir(config) {
     throw new Error('Config field "assetsDir" must be a relative asset directory');
   }
   return assetsDir.split(/[\\/]/).filter(Boolean).join("/");
+}
+
+function asConfigArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function resolveInputPath({ configPath, projectRoot }, value, field) {
+  const rawValue = assertString(value, field);
+  if (path.isAbsolute(rawValue)) return path.normalize(rawValue);
+  const base = projectRoot || path.dirname(configPath);
+  return path.resolve(base, rawValue);
+}
+
+function resolveDataScripts(config) {
+  return asConfigArray(config.app?.dataScripts).map((script) => {
+    const value = String(script || "").trim();
+    if (!value || path.isAbsolute(value) || value.split(/[\\/]/).includes("..")) {
+      throw new Error('Config field "app.dataScripts" must contain relative output paths');
+    }
+    return value.split(/[\\/]/).filter(Boolean).join("/");
+  });
 }
 
 function renderFinalIndexHtml(config, { jsFiles, cssFiles }) {
@@ -220,6 +242,60 @@ function renderStaticAction(action) {
             ${action.cadence_hint ? `<p class="jun-ui-muted">${escapeHtml(action.cadence_hint)}</p>` : ""}
             <button type="button" data-prompt="${prompt}" data-send-to="${sendTo}" data-action-id="${actionId}">复制指令</button>
           </article>`;
+}
+
+function assetLink(file) {
+  return `  <link rel="stylesheet" href="./${escapeHtml(file)}">`;
+}
+
+function classicScript(file) {
+  return `  <script src="./${escapeHtml(file)}"></script>`;
+}
+
+function ensureArtifactBodyAttributes(html, config) {
+  const pageType = escapeHtml(assertString(config.type, "type"));
+  const attrs = `data-jun-ui-artifact data-page-type="${pageType}" data-component-system="jun-ui bundle-app"`;
+  if (!/<body\b/i.test(html)) {
+    return html;
+  }
+  return html.replace(/<body([^>]*)>/i, (match, bodyAttrs) => {
+    if (bodyAttrs.includes("data-jun-ui-artifact")) return match;
+    return `<body${bodyAttrs} ${attrs}>`;
+  });
+}
+
+function ensureGeneratorMeta(html) {
+  if (html.includes('name="generator"')) return html;
+  const meta = '  <meta name="generator" content="jun-ui bundle-app">';
+  if (/<\/head>/i.test(html)) {
+    return html.replace(/<\/head>/i, `${meta}\n</head>`);
+  }
+  return html;
+}
+
+function injectHtmlAssets(html, { cssFiles, jsFiles, dataScripts }) {
+  const cssBlock = cssFiles.map(assetLink).join("\n");
+  const scriptBlock = [...dataScripts.map(classicScript), ...jsFiles.map(classicScript)].join("\n");
+  let nextHtml = html;
+
+  if (nextHtml.includes("<!-- jun-ui:styles -->")) {
+    nextHtml = nextHtml.replace("<!-- jun-ui:styles -->", cssBlock);
+  } else if (/<\/head>/i.test(nextHtml)) {
+    nextHtml = nextHtml.replace(/<\/head>/i, `${cssBlock}\n</head>`);
+  }
+
+  if (nextHtml.includes("<!-- jun-ui:scripts -->")) {
+    nextHtml = nextHtml.replace("<!-- jun-ui:scripts -->", scriptBlock);
+  } else if (/<\/body>/i.test(nextHtml)) {
+    nextHtml = nextHtml.replace(/<\/body>/i, `${scriptBlock}\n</body>`);
+  }
+
+  return nextHtml;
+}
+
+function renderBundledAppHtml(config, sourceHtml, { jsFiles, cssFiles, dataScripts }) {
+  const withAssets = injectHtmlAssets(sourceHtml, { jsFiles, cssFiles, dataScripts });
+  return ensureArtifactBodyAttributes(ensureGeneratorMeta(withAssets), config);
 }
 
 function renderReactSource(config) {
@@ -656,6 +732,80 @@ async function buildSemiArtifact({ config, outDir, outputFileName, assetsDir }) 
   }
 }
 
+async function buildAppBundleArtifact({ config, configPath, projectRoot, outDir, outputFileName, assetsDir }) {
+  if (!config.app || typeof config.app !== "object") {
+    throw new Error('Config field "app" is required for bundle-app');
+  }
+  const htmlPath = resolveInputPath({ configPath, projectRoot }, config.app.html, "app.html");
+  const entryPath = resolveInputPath({ configPath, projectRoot }, config.app.entry, "app.entry");
+  const stylePaths = asConfigArray(config.app.styles).map((style, index) =>
+    resolveInputPath({ configPath, projectRoot }, style, `app.styles[${index}]`),
+  );
+  const dataScripts = resolveDataScripts(config);
+  const sourceHtml = await readFile(htmlPath, "utf8");
+  const tempBase = path.join(repoRoot, "tmp");
+  await mkdir(tempBase, { recursive: true });
+  const tempRoot = await mkdtemp(path.join(tempBase, "jun-ui-app-build-"));
+  const tempOutDir = path.join(tempRoot, "dist");
+  const tempEntry = path.join(tempRoot, "main.js");
+
+  try {
+    const imports = [
+      ...stylePaths.map((stylePath) => `import ${JSON.stringify(stylePath)};`),
+      `import ${JSON.stringify(entryPath)};`,
+    ].join("\n");
+    await writeFile(tempEntry, `${imports}\n`, "utf8");
+    await viteBuild({
+      root: tempRoot,
+      base: "./",
+      configFile: false,
+      define: {
+        "process.env.NODE_ENV": JSON.stringify("production"),
+      },
+      mode: "production",
+      publicDir: false,
+      logLevel: "silent",
+      build: {
+        outDir: tempOutDir,
+        assetsDir,
+        emptyOutDir: true,
+        lib: {
+          entry: tempEntry,
+          name: "JunUiBundledApp",
+          formats: ["iife"],
+          fileName: "index",
+          cssFileName: "index",
+        },
+        rollupOptions: {
+          output: {
+            inlineDynamicImports: true,
+          },
+        },
+      },
+    });
+    await moveRootAssetsToAssetsDir(tempOutDir, assetsDir);
+    const builtFiles = await listBuiltFiles(tempOutDir);
+    const jsFiles = builtFiles.filter((file) => file.endsWith(".js")).sort();
+    const cssFiles = builtFiles.filter((file) => file.endsWith(".css")).sort();
+    if (jsFiles.length === 0) {
+      throw new Error("bundle-app did not produce a JavaScript asset");
+    }
+    await writeFile(
+      path.join(tempOutDir, outputFileName),
+      renderBundledAppHtml(config, sourceHtml, { jsFiles, cssFiles, dataScripts }),
+      "utf8",
+    );
+    await mkdir(outDir, { recursive: true });
+    await rm(path.join(outDir, outputFileName), { force: true });
+    await rm(path.join(outDir, assetsDir), { recursive: true, force: true });
+    await cp(path.join(tempOutDir, outputFileName), path.join(outDir, outputFileName));
+    await mkdir(path.dirname(path.join(outDir, assetsDir)), { recursive: true });
+    await cp(path.join(tempOutDir, assetsDir), path.join(outDir, assetsDir), { recursive: true });
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
 async function build(argv) {
   const { flags, positionals } = parseFlags(argv);
   const configArg = positionals[0];
@@ -670,6 +820,22 @@ async function build(argv) {
   assertString(config.type, "type");
   await buildSemiArtifact({ config, outDir, outputFileName, assetsDir });
   console.log(`Built ${path.join(outDir, outputFileName)}`);
+}
+
+async function bundleApp(argv) {
+  const { flags, positionals } = parseFlags(argv);
+  const configArg = positionals[0];
+  if (!configArg) throw new Error(`Missing config path.\n${usage()}`);
+  const projectRoot = flags["project-root"] ? path.resolve(flags["project-root"]) : undefined;
+  const configPath = path.resolve(projectRoot || process.cwd(), configArg);
+  const config = await readJson(configPath);
+  const outDir = resolveOutDir({ config, flags, configPath, projectRoot });
+  const outputFileName = resolveOutputFileName(config);
+  const assetsDir = resolveAssetsDir(config);
+  assertString(config.title, "title");
+  assertString(config.type, "type");
+  await buildAppBundleArtifact({ config, configPath, projectRoot, outDir, outputFileName, assetsDir });
+  console.log(`Bundled ${path.join(outDir, outputFileName)}`);
 }
 
 async function doctor(argv) {
@@ -732,6 +898,10 @@ async function main() {
   }
   if (command === "build") {
     await build(rest);
+    return;
+  }
+  if (command === "bundle-app") {
+    await bundleApp(rest);
     return;
   }
   if (command === "doctor") {
