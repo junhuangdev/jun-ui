@@ -1,5 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
+import { homedir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 
@@ -11,6 +12,8 @@ const requiredFiles = [
   "jun-ui.css",
   "jun-ui.js",
   "vendor/spectrum.html",
+  "skills/jun-ui-static-pages/SKILL.md",
+  "skills/jun-ui-static-pages/references/usage-patterns.md",
   "docs/design-system.md",
   "examples/dashboard.html",
   "examples/form.html",
@@ -41,6 +44,8 @@ const js = await requireFile("jun-ui.js");
 const readme = await requireFile("README.md");
 const designDoc = await requireFile("docs/design-system.md");
 const vendor = await requireFile("vendor/spectrum.html");
+const skill = await requireFile("skills/jun-ui-static-pages/SKILL.md");
+const skillReference = await requireFile("skills/jun-ui-static-pages/references/usage-patterns.md");
 
 for (const token of [
   "--jui-page-max",
@@ -77,6 +82,32 @@ for (const banned of ["React", "Vite", "Tailwind", "webpack"]) {
 
 if (!vendor.includes("@spectrum-web-components/bundle/elements.js")) {
   errors.push("vendor/spectrum.html must document the Spectrum CDN bundle import");
+}
+
+if (!skill.includes("name: jun-ui-static-pages")) {
+  errors.push("jun-ui skill must use the jun-ui-static-pages name");
+}
+if (!skill.includes("Use when") || !skill.includes("no-build")) {
+  errors.push("jun-ui skill description must include concrete no-build triggers");
+}
+for (const required of ["jun-ui.css", "jun-ui.js", "Spectrum Web Components", "Web Awesome", "Bootstrap"]) {
+  if (!skill.includes(required)) errors.push(`jun-ui skill missing ${required}`);
+}
+if (!skillReference.includes("<jui-app-shell>") || !skillReference.includes("<jui-panel>")) {
+  errors.push("jun-ui skill reference must include core jui element examples");
+}
+
+const shouldCheckGlobalSkill = homedir() === "/Users/jun" || process.env.JUN_UI_REQUIRE_GLOBAL_SKILL === "1";
+if (shouldCheckGlobalSkill) {
+  const globalSkillPath = "/Users/jun/.codex/skills/jun-ui-static-pages/SKILL.md";
+  try {
+    const globalSkill = await readFile(globalSkillPath, "utf8");
+    if (!globalSkill.includes("name: jun-ui-static-pages")) {
+      errors.push("global jun-ui skill entrypoint has wrong skill name");
+    }
+  } catch {
+    errors.push(`missing global skill entrypoint: ${globalSkillPath}`);
+  }
 }
 
 const examples = await readdir(path.join(root, "examples"));

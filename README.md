@@ -4,6 +4,8 @@
 
 它的目标不是重造完整组件库，而是给 AI 和人一个稳定的默认前端底座：直接写 HTML，引入 CSS 和 JS，就能得到一致的页面骨架、布局规则、信息层级和少量高频组合组件。
 
+`jun-ui` also ships with an AI Skill at `skills/jun-ui-static-pages/`. Install or symlink that Skill into the active agent skill directory so AI sessions use `jun-ui` as the execution entrypoint, not just as documentation.
+
 ## 默认栈
 
 | 层 | 默认 | 用途 |
@@ -14,6 +16,22 @@
 | 小状态 | Alpine.js 可选 | 展开、筛选、局部开关 |
 | 局部刷新 | htmx 可选 | 服务端 HTML 局部替换 |
 | 兜底 | Web Awesome / Bootstrap | 特定组件或兼容需求 |
+
+## AI Skill
+
+The bundled Skill is the stronger runtime entrypoint for AI agents:
+
+```text
+skills/jun-ui-static-pages/SKILL.md
+```
+
+Local Codex install path:
+
+```text
+/Users/jun/.codex/skills/jun-ui-static-pages
+```
+
+When the Skill is installed, static-page tasks should first check this repository, reuse `jun-ui.css`, `jun-ui.js`, and the examples, then add page-specific CSS only where needed.
 
 ## 快速开始
 
