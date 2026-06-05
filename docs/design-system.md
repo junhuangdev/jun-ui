@@ -39,7 +39,7 @@ flowchart LR
 | Semi Design System | Product UI components, interaction primitives, and page-level composition building blocks. |
 | Context7 CLI + Skills | Required documentation retrieval mode; `ctx7` grounds AI before using Semi components. |
 | Figma | Visual source, review surface, and design-system bridge when a page needs shared design intent. |
-| Builder | Converts page intent and source code into portable built artifacts through `jun-ui build`. |
+| Builder | Converts page intent into Vite-bundled Semi artifacts with classic IIFE JavaScript, CSS, relative assets, and static fallback. |
 | Skill | Installable entrypoint that makes AI choose the right path, use the selected tools correctly, and verify the result. |
 | Validation | Prevents stale instructions and checks the current delivery contract remains explicit. |
 
@@ -69,7 +69,7 @@ A page is acceptable only when the final artifact:
 
 Default to Semi Design System for UI implementation. Use Context7 CLI + Skills before writing or changing substantial Semi code. MCP is optional. Stop before Semi implementation if no approved Context7 path is available. Use Figma when visual intent is part of the task. Allow compilation whenever it improves speed, quality, or component coverage, as long as the built result satisfies the delivery contract.
 
-Use the Builder as the default execution surface. A target project should provide page intent, data, and output path; `jun-ui` should provide the installable Skill, Builder, Design System rules, and artifact verification.
+Use the Builder as the default execution surface. A target project should provide page intent, data, and output path; `jun-ui` should provide the installable Skill, Builder, Design System rules, and artifact verification. The Builder may use React, Vite, and Semi internally, but target projects should receive only the built `file://` artifact folder unless the user explicitly chooses a project-owned build setup.
 
 ## Non-Goals
 

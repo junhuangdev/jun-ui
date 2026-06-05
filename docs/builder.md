@@ -21,7 +21,7 @@ node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs build <config.json>
 | Part | Owner |
 | --- | --- |
 | Node, npm, build tooling | jun-ui Builder |
-| Semi Design System usage | jun-ui Skill and Context7 |
+| Semi Design System usage | jun-ui Skill, Context7, and Builder profile |
 | Figma design review path | jun-ui Skill |
 | Page intent and source data | target project |
 | Final file-openable artifact | written back to target project |
@@ -56,4 +56,17 @@ ctx7 skills install /upstash/context7 context7-cli --global --universal --yes
 
 ## Current Builder Slice
 
-The current Builder has a minimal file-openable renderer and `doctor` command. It establishes the installable command surface and artifact contract. The next implementation layer should replace the smoke renderer with the Semi-powered build profile while preserving the same `jun-ui build` interface.
+The current Builder uses Vite library mode to bundle React and Semi Design System into classic IIFE JavaScript plus CSS. It writes a final `index.html` with relative `./assets/` paths and a static fallback inside `#jun-ui-root`, so the page is visible through `file://` before React takes over.
+
+The `jun-ui build` interface stays stable:
+
+```bash
+jun-ui build <config.json> [--out <dir>] [--project-root <dir>]
+```
+
+Rules:
+
+- `config.out` resolves from the target project root when provided, otherwise from the config file directory.
+- `--out` overrides `config.out` and resolves from the current working directory, or from `--project-root` when provided.
+- Vite, React, and Semi dependencies stay in `jun-ui`; target projects receive only built HTML, CSS, and JavaScript.
+- The browser output must not require module scripts, a dev server, Context7, or Figma.

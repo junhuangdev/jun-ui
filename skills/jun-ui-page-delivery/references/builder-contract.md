@@ -14,6 +14,8 @@ From the source checkout:
 node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs build <config.json>
 ```
 
+The current Builder bundles React and Semi Design System through Vite into classic IIFE JavaScript plus CSS. The final `index.html` uses relative `./assets/` paths and includes a static fallback so it is visible through `file://` before React takes over.
+
 ## Division Of Responsibility
 
 | Concern | Owner |
@@ -30,6 +32,8 @@ node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs build <config.json>
 - Use the Builder instead of making every target project install its own page toolchain.
 - Keep generated assets relative.
 - Confirm the built output opens through `file://`.
+- Do not require module scripts for final review.
+- Keep a nonblank static fallback in the generated HTML.
 - Do not add Context7 or Figma to runtime output.
 - Run `jun-ui doctor --strict` before substantial Semi implementation.
 - Require `ctx7`, `context7-docs`, and `context7-cli`.

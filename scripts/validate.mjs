@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { lstat, mkdtemp, readFile, rm } from "node:fs/promises";
+import { lstat, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -85,6 +85,8 @@ const staleTerms = [
   "another primary documentation source",
   "official Semi documentation",
   "working examples",
+  "minimal file-openable renderer",
+  "smoke renderer",
 ];
 
 const errors = [];
@@ -126,6 +128,18 @@ const packageJson = JSON.parse(await requireFile("package.json"));
 for (const term of ["ai-page-delivery", "semi-design", "context7", "figma", "file-openable"]) {
   if (!JSON.stringify(packageJson).includes(term)) {
     errors.push(`package.json missing ${term}`);
+  }
+}
+for (const dependency of [
+  "@douyinfe/semi-icons",
+  "@douyinfe/semi-ui",
+  "@vitejs/plugin-react",
+  "vite",
+  "react",
+  "react-dom",
+]) {
+  if (!packageJson.dependencies?.[dependency]) {
+    errors.push(`package.json missing builder dependency ${dependency}`);
   }
 }
 if (packageJson.bin?.["jun-ui"] !== "scripts/jun-ui.mjs") {
@@ -187,6 +201,31 @@ try {
   if (!builtHtml.includes("<!doctype html>") || !builtHtml.includes("data-jun-ui-artifact")) {
     errors.push("builder smoke output must be a file-openable jun-ui artifact");
   }
+  if (!builtHtml.includes("./assets/")) {
+    errors.push("builder smoke output must reference bundled assets with relative ./assets/ paths");
+  }
+  if (builtHtml.includes('type="module"')) {
+    errors.push("builder smoke output must not require module scripts for file:// rendering");
+  }
+  if (!builtHtml.includes('<script src="./assets/')) {
+    errors.push("builder smoke output must load a classic bundled script");
+  }
+  if (!builtHtml.includes("data-jun-ui-static-fallback")) {
+    errors.push("builder smoke output must include a nonblank static fallback");
+  }
+  const assets = await readdir(path.join(builderSmokeDir, "assets"));
+  if (!assets.some((asset) => asset.endsWith(".js"))) {
+    errors.push("builder smoke output must include a bundled JavaScript asset");
+  }
+  for (const asset of assets.filter((asset) => asset.endsWith(".js"))) {
+    const jsBody = await readFile(path.join(builderSmokeDir, "assets", asset), "utf8");
+    if (jsBody.includes("process.env.NODE_ENV")) {
+      errors.push("builder smoke JavaScript must not require process.env in the browser");
+    }
+  }
+  if (!assets.some((asset) => asset.endsWith(".css"))) {
+    errors.push("builder smoke output must include a bundled CSS asset");
+  }
   if (!stdout.includes("Built")) {
     errors.push("builder smoke command must report a built artifact");
   }
@@ -196,6 +235,32 @@ try {
   if (builderSmokeDir) {
     await rm(builderSmokeDir, { recursive: true, force: true });
   }
+}
+
+const relativeOutName = `tmp/jun-ui-relative-out-${Date.now()}`;
+const expectedRelativeOutDir = path.join(root, relativeOutName);
+const misplacedRelativeOutDir = path.join(root, "templates", "workbench", relativeOutName);
+try {
+  await rm(expectedRelativeOutDir, { recursive: true, force: true });
+  await rm(misplacedRelativeOutDir, { recursive: true, force: true });
+  await execFileAsync(process.execPath, [
+    path.join(root, "scripts/jun-ui.mjs"),
+    "build",
+    path.join(root, "templates/workbench/jun-ui.page.json"),
+    "--out",
+    relativeOutName,
+  ]);
+  if (!(await fileExists(path.join(expectedRelativeOutDir, "index.html")))) {
+    errors.push("--out relative path must resolve from the current working directory");
+  }
+  if (await fileExists(path.join(misplacedRelativeOutDir, "index.html"))) {
+    errors.push("--out relative path must not resolve from the config file directory");
+  }
+} catch (error) {
+  errors.push(`builder relative --out smoke failed: ${error.message}`);
+} finally {
+  await rm(expectedRelativeOutDir, { recursive: true, force: true });
+  await rm(misplacedRelativeOutDir, { recursive: true, force: true });
 }
 
 const shouldCheckGlobalSkill = homedir() === "/Users/jun" || process.env.JUN_UI_REQUIRE_GLOBAL_SKILL === "1";

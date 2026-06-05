@@ -74,6 +74,8 @@ node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs build <config.json>
 
 The target project provides page intent, data, and an output path. `jun-ui` owns the builder environment and writes back the final file-openable artifact.
 
+Current Builder output uses Semi Design System components bundled by Vite into classic IIFE JavaScript and CSS. The generated HTML keeps relative `./assets/` paths and includes a static fallback so the page is nonblank even before JavaScript runs through `file://`.
+
 ## Context7 Setup
 
 Install the AI-side documentation path once:
