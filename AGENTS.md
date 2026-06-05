@@ -27,6 +27,7 @@ This repository is Jun's installable AI page-building Skill, Design System, and 
 - Treat Context7 as an AI documentation aid, not a runtime dependency.
 - Use Context7 CLI + Skills as the required documentation mode before materially changing Semi component usage.
 - Use `ctx7` to resolve and fetch Semi documentation. MCP is optional.
+- Verify `ctx7`, `context7-docs`, and `context7-cli` with `jun-ui doctor --strict` before substantial Semi implementation.
 - Stop before Semi implementation if neither Context7 CLI + Skills nor an explicitly approved Context7 MCP path is available.
 - Do not add Context7 to browser runtime dependencies or generated page artifacts.
 
@@ -70,7 +71,7 @@ For generated page templates or Builder changes, also run `jun-ui build` against
 ## Skill Packaging
 
 - The bundled Skill lives at `skills/jun-ui-page-delivery/SKILL.md`.
-- Keep Skill instructions aligned with `README.md`, `docs/problem-and-solution.md`, and `docs/design-system.md`.
+- Keep Skill instructions aligned with `README.md`, `docs/problem-and-solution.md`, `docs/design-system.md`, and `docs/context7.md`.
 - The active local install path is `/Users/jun/.codex/skills/jun-ui-page-delivery`.
 - When updating the Skill, verify the installed or symlinked copy points to the intended source.
 

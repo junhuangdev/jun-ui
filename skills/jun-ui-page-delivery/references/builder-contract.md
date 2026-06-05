@@ -31,8 +31,20 @@ node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs build <config.json>
 - Keep generated assets relative.
 - Confirm the built output opens through `file://`.
 - Do not add Context7 or Figma to runtime output.
+- Run `jun-ui doctor --strict` before substantial Semi implementation.
+- Require `ctx7`, `context7-docs`, and `context7-cli`.
 - MCP is optional.
 - Stop before Semi implementation if `ctx7` or an explicitly approved Context7 MCP path is unavailable.
+
+## Context7 Check
+
+```bash
+jun-ui doctor --strict
+ctx7 library "semi design" "button form table"
+ctx7 docs /douyinfe/semi-design "Button Form Table basic usage"
+```
+
+Stop before Semi implementation if the Context7 CLI + Skills path is missing and the user has not explicitly approved an MCP fallback.
 
 ## Builder Config Shape
 

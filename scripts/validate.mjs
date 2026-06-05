@@ -14,6 +14,7 @@ const requiredFiles = [
   "LICENSE",
   "package.json",
   "docs/builder.md",
+  "docs/context7.md",
   "docs/design-system.md",
   "docs/problem-and-solution.md",
   "scripts/jun-ui.mjs",
@@ -41,6 +42,7 @@ const userFacingFiles = [
   "README.md",
   "AGENTS.md",
   "docs/builder.md",
+  "docs/context7.md",
   "docs/design-system.md",
   "docs/problem-and-solution.md",
   "skills/jun-ui-page-delivery/SKILL.md",
@@ -65,6 +67,9 @@ const requiredCombinedTerms = [
   "Stop before Semi implementation",
   "jun-ui build",
   "target project",
+  "context7-docs",
+  "context7-cli",
+  "jun-ui doctor --strict",
 ];
 
 const staleTerms = [
@@ -207,6 +212,25 @@ if (shouldCheckGlobalSkill) {
 
   if (await fileExists("/Users/jun/.codex/skills/jun-ui-static-pages")) {
     errors.push("old global jun-ui-static-pages skill entrypoint still exists");
+  }
+
+  try {
+    const { stdout: doctorOutput } = await execFileAsync(process.execPath, [
+      path.join(root, "scripts/jun-ui.mjs"),
+      "doctor",
+      "--strict",
+    ]);
+    for (const expected of [
+      "ok ctx7:",
+      "ok context7-docs skill:",
+      "ok context7-cli skill:",
+    ]) {
+      if (!doctorOutput.includes(expected)) {
+        errors.push(`doctor --strict missing ${expected}`);
+      }
+    }
+  } catch (error) {
+    errors.push(`doctor --strict failed: ${error.stdout || error.message}`);
   }
 }
 

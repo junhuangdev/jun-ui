@@ -33,7 +33,26 @@ node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs build <config.json>
 - Produce a final artifact that opens through `file://`.
 - Keep asset paths relative so the output folder is movable.
 - Do not add Context7, Figma, or builder dependencies to browser runtime output.
+- Verify `ctx7`, `context7-docs`, and `context7-cli` with `jun-ui doctor --strict`.
 - Stop before Semi implementation if Context7 CLI + Skills through `ctx7` is unavailable.
+
+## Context7 Gate
+
+The Builder environment should pass:
+
+```bash
+jun-ui doctor --strict
+```
+
+This checks the installable Builder root, the `ctx7` CLI, and the two Context7 Skills used by AI: `context7-docs` and `context7-cli`.
+
+If the check fails, install the required AI-side Context7 path before implementing substantial Semi Design System pages:
+
+```bash
+npm install -g ctx7@latest
+ctx7 skills install /upstash/context7 context7-docs --global --universal --yes
+ctx7 skills install /upstash/context7 context7-cli --global --universal --yes
+```
 
 ## Current Builder Slice
 

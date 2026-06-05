@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -261,6 +262,14 @@ async function doctor(argv) {
     ok: Boolean(ctx7Path),
     detail: ctx7Path || "missing; install Context7 CLI + Skills before substantial Semi implementation",
   });
+  for (const skillName of ["context7-docs", "context7-cli"]) {
+    const skillPath = await findSkill(skillName);
+    checks.push({
+      name: `${skillName} skill`,
+      ok: Boolean(skillPath),
+      detail: skillPath || "missing; install Context7 CLI + Skills before substantial Semi implementation",
+    });
+  }
   for (const check of checks) {
     console.log(`${check.ok ? "ok" : "missing"} ${check.name}: ${check.detail}`);
   }
@@ -274,6 +283,22 @@ async function findOnPath(command) {
   const candidates = pathEnv.split(path.delimiter).map((dir) => path.join(dir, command));
   for (const candidate of candidates) {
     if (await exists(candidate)) return candidate;
+  }
+  return "";
+}
+
+async function findSkill(skillName) {
+  const cwd = process.cwd();
+  const home = homedir();
+  const roots = [
+    path.join(cwd, ".agents", "skills"),
+    path.join(cwd, ".codex", "skills"),
+    path.join(home, ".agents", "skills"),
+    path.join(home, ".codex", "skills"),
+  ];
+  for (const root of roots) {
+    const skillPath = path.join(root, skillName, "SKILL.md");
+    if (await exists(skillPath)) return skillPath;
   }
   return "";
 }

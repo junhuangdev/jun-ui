@@ -33,6 +33,7 @@ Every generated page must optimize for the final user-visible result:
 - Use Semi Design System as the default component system.
 - Use Context7 CLI + Skills before material Semi API or pattern decisions.
 - Treat `ctx7` as the default documentation execution path. MCP is optional.
+- Verify `ctx7`, `context7-docs`, and `context7-cli` with `jun-ui doctor --strict`.
 - Stop before Semi implementation if neither Context7 CLI + Skills nor an approved Context7 MCP path is available.
 - Use Figma when the task starts from a visual design, needs design review, or should sync product UI intent.
 - Use the Builder instead of making every target project own Node, Semi, and build dependencies.
@@ -73,11 +74,25 @@ node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs build <config.json>
 
 The target project provides page intent, data, and an output path. `jun-ui` owns the builder environment and writes back the final file-openable artifact.
 
+## Context7 Setup
+
+Install the AI-side documentation path once:
+
+```bash
+npm install -g ctx7@latest
+ctx7 skills install /upstash/context7 context7-docs --global --universal --yes
+ctx7 skills install /upstash/context7 context7-cli --global --universal --yes
+jun-ui doctor --strict
+```
+
+Context7 is not added to browser runtime output or target project dependencies.
+
 ## Documents
 
 - `docs/problem-and-solution.md`: separates the page-building problem from the selected solution.
 - `docs/design-system.md`: defines the current Design System roles, boundaries, and delivery contract.
 - `docs/builder.md`: defines the centralized Builder command and target project boundary.
+- `docs/context7.md`: defines the required `ctx7`, `context7-docs`, and `context7-cli` setup and verification path.
 - `skills/jun-ui-page-delivery/references/delivery-contract.md`: concise Skill reference for artifact requirements.
 - `skills/jun-ui-page-delivery/references/builder-contract.md`: concise Skill reference for `jun-ui build`.
 
