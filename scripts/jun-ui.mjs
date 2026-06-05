@@ -776,11 +776,6 @@ async function buildAppBundleArtifact({ config, configPath, projectRoot, outDir,
           fileName: "index",
           cssFileName: "index",
         },
-        rollupOptions: {
-          output: {
-            inlineDynamicImports: true,
-          },
-        },
       },
     });
     await moveRootAssetsToAssetsDir(tempOutDir, assetsDir);

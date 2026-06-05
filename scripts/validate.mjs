@@ -392,13 +392,16 @@ try {
     ),
     "utf8",
   );
-  await execFileAsync(process.execPath, [
+  const bundleResult = await execFileAsync(process.execPath, [
     path.join(root, "scripts/jun-ui.mjs"),
     "bundle-app",
     bundleConfig,
     "--project-root",
     bundleSourceDir,
   ]);
+  if (`${bundleResult.stdout}\n${bundleResult.stderr}`.includes("inlineDynamicImports")) {
+    errors.push("bundle-app smoke must not emit inlineDynamicImports warnings");
+  }
   const bundleHtml = await readFile(path.join(bundleOutDir, "workbench.html"), "utf8");
   if (!(await fileExists(path.join(bundleOutDir, "keep.json")))) {
     errors.push("bundle-app smoke must preserve sibling files");
