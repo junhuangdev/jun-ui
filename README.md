@@ -33,6 +33,8 @@ Local Codex install path:
 
 When the Skill is installed, static-page tasks should first check this repository, reuse `jun-ui.css`, `jun-ui.js`, and the examples, then add page-specific CSS only where needed.
 
+For the decision context behind this default stack and what future AI sessions should preserve, read `docs/static-ui-decision-context.md`.
+
 ## 快速开始
 
 把 `jun-ui.css` 和 `jun-ui.js` 放到页面能访问的位置，然后引入 Spectrum CDN：

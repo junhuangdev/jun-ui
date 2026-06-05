@@ -16,6 +16,7 @@ const requiredFiles = [
   "skills/jun-ui-static-pages/SKILL.md",
   "skills/jun-ui-static-pages/references/usage-patterns.md",
   "docs/design-system.md",
+  "docs/static-ui-decision-context.md",
   "examples/dashboard.html",
   "examples/form.html",
   "examples/detail.html",
@@ -45,6 +46,7 @@ const js = await requireFile("jun-ui.js");
 const readme = await requireFile("README.md");
 const agents = await requireFile("AGENTS.md");
 const designDoc = await requireFile("docs/design-system.md");
+const decisionContext = await requireFile("docs/static-ui-decision-context.md");
 const vendor = await requireFile("vendor/spectrum.html");
 const skill = await requireFile("skills/jun-ui-static-pages/SKILL.md");
 const skillReference = await requireFile("skills/jun-ui-static-pages/references/usage-patterns.md");
@@ -108,6 +110,20 @@ for (const required of [
   "skills/jun-ui-static-pages/SKILL.md",
 ]) {
   if (!agents.includes(required)) errors.push(`AGENTS.md missing ${required}`);
+}
+
+for (const required of [
+  "jun-ui-static-pages",
+  "Spectrum Web Components",
+  "Web Awesome",
+  "Bootstrap",
+  "Context7",
+  "file://",
+  "ui-library-demos",
+]) {
+  if (!decisionContext.includes(required)) {
+    errors.push(`docs/static-ui-decision-context.md missing ${required}`);
+  }
 }
 
 const shouldCheckGlobalSkill = homedir() === "/Users/jun" || process.env.JUN_UI_REQUIRE_GLOBAL_SKILL === "1";
