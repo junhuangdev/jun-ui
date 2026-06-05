@@ -1,54 +1,61 @@
 # jun-ui Agent Instructions
 
-This repository is Jun's canonical no-build Design System wrapper for static product pages, local tools, dashboards, settings screens, detail pages, and AI-generated HTML-first prototypes.
+This repository is Jun's installable AI page-building Skill, Design System, and Builder. It exists to help AI build high-quality pages inside a target project and produce final artifacts that can be opened directly with `file://`.
 
 ## Scope
 
 - Use these instructions for changes inside `/Users/jun/workspace/jun-ui`.
 - Project-local rules add repository context only. They do not weaken global agent rules.
-- For downstream static pages, prefer the installed `jun-ui-static-pages` Skill as the execution entrypoint.
+- For Jun page work, use the installed `jun-ui-page-delivery` Skill as the execution entrypoint.
 
-## Canonical Direction
+## Current Direction
 
-- Default stack: native HTML, `jun-ui.css`, `jun-ui.js`, and Spectrum Web Components.
-- Default page-level Design System: `jun-ui`.
-- Default low-level controls: Spectrum Web Components.
-- Optional small state: Alpine.js.
-- Optional server-rendered partial updates: htmx.
-- Lighter/free-form fallback: Web Awesome.
-- Compatibility/speed fallback: Bootstrap.
-- Do not introduce React, Vite, Tailwind, webpack, or another build pipeline unless the user explicitly asks or the target project already requires it.
+- Primary component system: Semi Design System.
+- AI documentation mode: Context7 CLI + Skills using `ctx7`.
+- Design and review surface: Figma.
+- Builder command: `jun-ui build <config.json>`.
+- Acceptance target: a final page artifact that opens through `file://` and preserves expected UI behavior.
+
+## Problem And Solution Boundary
+
+- The problem is AI page delivery: speed, quality, consistency, and directly inspectable results.
+- The installable Skill, Semi Design System, Context7 CLI + Skills, Figma, and Builder are the selected solution for that problem.
+- Do not reframe the project around implementation purity. The final artifact and review experience matter more than whether source files were compiled.
 
 ## Context7 Rule
 
 - Treat Context7 as an AI documentation aid, not a runtime dependency.
-- Before materially changing Spectrum, Web Awesome, Bootstrap, Alpine.js, or htmx usage, use Context7 if available.
-- If Context7 is unavailable, verify with official docs, local examples, or installed package types before implementing.
-- Do not add Context7 to browser pages, npm runtime dependencies, or generated static artifacts.
+- Use Context7 CLI + Skills as the required documentation mode before materially changing Semi component usage.
+- Use `ctx7` to resolve and fetch Semi documentation. MCP is optional.
+- Stop before Semi implementation if neither Context7 CLI + Skills nor an explicitly approved Context7 MCP path is available.
+- Do not add Context7 to browser runtime dependencies or generated page artifacts.
+
+## Figma Rule
+
+- Use Figma when the task starts from a design, needs visual review, or needs a shared design-system artifact.
+- When calling Figma tools, load the required Figma skills first.
+- Figma is not mandatory for every small page, but it is part of the selected solution when visual intent or review matters.
 
 ## Design System Rules
 
-- `jun-ui.css` owns tokens, density, layout primitives, responsive behavior, and product-tool visual language.
-- `jun-ui.js` owns high-frequency `jui-*` custom elements.
-- Spectrum owns buttons, inputs, tabs, dialogs, tables, menus, and other accessible base controls.
-- Examples under `examples/` are source templates for AI and human reuse.
-- Add page-specific CSS only for layout polish that does not belong in the shared system.
-- If a pattern repeats across pages, move it into `jun-ui` instead of duplicating it.
+- Semi owns the UI component surface: layout components, forms, navigation, tables, overlays, controls, and product-grade interaction primitives.
+- `jun-ui` owns the delivery contract: problem framing, templates, Builder profile, Skill instructions, Figma handoff rules, and artifact verification.
+- Target projects own page intent, source data, and output location.
+- Add reusable templates or Skill references when repeated AI work needs stronger guidance.
+- Do not create a parallel component framework inside this repository.
 
-## Page Patterns
+## Builder Rule
 
-- Dashboard: shell, header, metric cards, primary queue, action rail.
-- Form: header, grouped fields, validation states, save/cancel actions.
-- Detail: title, metadata, main content, timeline/history, right-side context.
+- Prefer `jun-ui build` for static pages, workbenches, dashboards, settings screens, and detail pages in a target project.
+- Keep Node, Semi, and build dependencies centralized in this installable Builder instead of copying them into every target project.
+- A target project may add a small page config, but it should not become a `jun-ui` subproject.
 
-Use `jui-*` shell, panel, grid, stack, section title, stat, and empty-state patterns before hand-rolling equivalent structure.
+## File-Openable Compatibility
 
-## Static Compatibility
-
-- Example pages must open directly from the filesystem with `file://`.
-- Keep CDN imports documented in `vendor/spectrum.html`.
-- Do not require a local server for final examples.
-- Dev servers are acceptable only as review convenience.
+- Final page artifacts must be openable through `file://`.
+- Built asset paths must be relative.
+- A dev server is acceptable during development, but it must not be required for final review.
+- Browser verification should inspect the built artifact, not only the development URL.
 
 ## Verification Gate
 
@@ -58,20 +65,14 @@ Before claiming repository changes are ready, run:
 npm test
 ```
 
-For custom element changes, also check syntax:
-
-```sh
-node --check jun-ui.js
-```
-
-For visual or example changes, open the relevant `examples/*.html` page in a browser or use a headless browser smoke check. Confirm the page renders nonblank and `jui-*` elements hydrate.
+For generated page templates or Builder changes, also run `jun-ui build` against a template and open the built artifact in a browser or headless browser. Confirm the page is nonblank, styles load, and key interactions work without a dev server.
 
 ## Skill Packaging
 
-- The bundled Skill lives at `skills/jun-ui-static-pages/SKILL.md`.
-- Keep Skill instructions aligned with `README.md`, `docs/design-system.md`, `jun-ui.css`, `jun-ui.js`, and `examples/`.
-- The active local install path is `/Users/jun/.codex/skills/jun-ui-static-pages`.
-- When updating the Skill, verify the installed or symlinked copy still points to the intended source.
+- The bundled Skill lives at `skills/jun-ui-page-delivery/SKILL.md`.
+- Keep Skill instructions aligned with `README.md`, `docs/problem-and-solution.md`, and `docs/design-system.md`.
+- The active local install path is `/Users/jun/.codex/skills/jun-ui-page-delivery`.
+- When updating the Skill, verify the installed or symlinked copy points to the intended source.
 
 ## File Naming
 

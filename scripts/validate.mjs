@@ -1,28 +1,98 @@
-import { readFile, readdir } from "node:fs/promises";
-import { spawnSync } from "node:child_process";
-import { homedir } from "node:os";
+import { execFile } from "node:child_process";
+import { lstat, mkdtemp, readFile, rm } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { promisify } from "node:util";
 
 const root = process.cwd();
+const execFileAsync = promisify(execFile);
 
 const requiredFiles = [
   "README.md",
   "AGENTS.md",
   "LICENSE",
+  "package.json",
+  "docs/builder.md",
+  "docs/design-system.md",
+  "docs/problem-and-solution.md",
+  "scripts/jun-ui.mjs",
+  "skills/jun-ui-page-delivery/SKILL.md",
+  "skills/jun-ui-page-delivery/references/builder-contract.md",
+  "skills/jun-ui-page-delivery/references/delivery-contract.md",
+  "templates/workbench/jun-ui.page.json",
+];
+
+const removedFiles = [
   "jun-ui.css",
   "jun-ui.js",
   "vendor/spectrum.html",
-  "skills/jun-ui-static-pages/SKILL.md",
-  "skills/jun-ui-static-pages/references/usage-patterns.md",
-  "docs/design-system.md",
-  "docs/static-ui-decision-context.md",
   "examples/dashboard.html",
   "examples/form.html",
   "examples/detail.html",
+  "docs/static-ui-decision-context.md",
+  "docs/superpowers/specs/2026-06-04-jun-ui-design.md",
+  "docs/superpowers/plans/2026-06-04-jun-ui-implementation.md",
+  "skills/jun-ui-static-pages/SKILL.md",
+  "skills/jun-ui-static-pages/references/usage-patterns.md",
+];
+
+const userFacingFiles = [
+  "README.md",
+  "AGENTS.md",
+  "docs/builder.md",
+  "docs/design-system.md",
+  "docs/problem-and-solution.md",
+  "skills/jun-ui-page-delivery/SKILL.md",
+  "skills/jun-ui-page-delivery/references/builder-contract.md",
+  "skills/jun-ui-page-delivery/references/delivery-contract.md",
+];
+
+const requiredTerms = [
+  "Semi Design System",
+  "Context7",
+  "Figma",
+  "file://",
+  "file-openable",
+  "installable",
+  "Builder",
+];
+
+const requiredCombinedTerms = [
+  "Context7 CLI + Skills",
+  "ctx7",
+  "MCP is optional",
+  "Stop before Semi implementation",
+  "jun-ui build",
+  "target project",
+];
+
+const staleTerms = [
+  "Spectrum Web Components",
+  "Web Awesome",
+  "Bootstrap",
+  "no-build",
+  "jun-ui.css",
+  "jun-ui.js",
+  "jun-ui-static-pages",
+  "static-ui-decision-context",
+  "when it is available",
+  "another primary documentation source",
+  "official Semi documentation",
+  "working examples",
 ];
 
 const errors = [];
+
+async function fileExists(file) {
+  try {
+    const filePath = path.isAbsolute(file) ? file : path.join(root, file);
+    await lstat(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 async function text(file) {
   return readFile(path.join(root, file), "utf8");
@@ -41,119 +111,103 @@ for (const file of requiredFiles) {
   await requireFile(file);
 }
 
-const css = await requireFile("jun-ui.css");
-const js = await requireFile("jun-ui.js");
-const readme = await requireFile("README.md");
-const agents = await requireFile("AGENTS.md");
-const designDoc = await requireFile("docs/design-system.md");
-const decisionContext = await requireFile("docs/static-ui-decision-context.md");
-const vendor = await requireFile("vendor/spectrum.html");
-const skill = await requireFile("skills/jun-ui-static-pages/SKILL.md");
-const skillReference = await requireFile("skills/jun-ui-static-pages/references/usage-patterns.md");
-
-for (const token of [
-  "--jui-page-max",
-  "--jui-gap",
-  "--jui-panel-radius",
-  "--jui-focus-ring",
-  ".jui-shell",
-  ".jui-panel",
-  ".jui-toolbar",
-  ".jui-grid",
-  ".jui-stack",
-]) {
-  if (!css.includes(token)) errors.push(`jun-ui.css missing ${token}`);
-}
-
-for (const elementName of [
-  "jui-app-shell",
-  "jui-page-header",
-  "jui-panel",
-  "jui-section-title",
-  "jui-stat",
-  "jui-empty-state",
-]) {
-  if (!js.includes(`customElements.define("${elementName}"`)) {
-    errors.push(`jun-ui.js does not register ${elementName}`);
+for (const file of removedFiles) {
+  if (await fileExists(file)) {
+    errors.push(`removed legacy file still exists: ${file}`);
   }
 }
 
-for (const banned of ["React", "Vite", "Tailwind", "webpack"]) {
-  if (readme.includes(`requires ${banned}`) || designDoc.includes(`requires ${banned}`)) {
-    errors.push(`docs imply a build dependency on ${banned}`);
+const packageJson = JSON.parse(await requireFile("package.json"));
+for (const term of ["ai-page-delivery", "semi-design", "context7", "figma", "file-openable"]) {
+  if (!JSON.stringify(packageJson).includes(term)) {
+    errors.push(`package.json missing ${term}`);
+  }
+}
+if (packageJson.bin?.["jun-ui"] !== "scripts/jun-ui.mjs") {
+  errors.push("package.json must expose the jun-ui builder bin");
+}
+if (!packageJson.scripts?.["build:page"]?.includes("scripts/jun-ui.mjs build")) {
+  errors.push("package.json must expose a build:page script using jun-ui build");
+}
+
+let combinedUserFacingText = "";
+for (const file of userFacingFiles) {
+  const body = await requireFile(file);
+  combinedUserFacingText += `\n${body}`;
+  for (const term of requiredTerms) {
+    if (term !== "file-openable" && !body.includes(term)) {
+      errors.push(`${file} missing ${term}`);
+    }
+  }
+  for (const term of staleTerms) {
+    if (body.includes(term)) {
+      errors.push(`${file} contains stale term ${term}`);
+    }
   }
 }
 
-if (!vendor.includes("@spectrum-web-components/bundle/elements.js")) {
-  errors.push("vendor/spectrum.html must document the Spectrum CDN bundle import");
+if (!combinedUserFacingText.includes("file-openable")) {
+  errors.push("user-facing docs missing file-openable");
 }
 
-if (!skill.includes("name: jun-ui-static-pages")) {
-  errors.push("jun-ui skill must use the jun-ui-static-pages name");
-}
-if (!skill.includes("Use when") || !skill.includes("no-build")) {
-  errors.push("jun-ui skill description must include concrete no-build triggers");
-}
-for (const required of ["jun-ui.css", "jun-ui.js", "Spectrum Web Components", "Web Awesome", "Bootstrap"]) {
-  if (!skill.includes(required)) errors.push(`jun-ui skill missing ${required}`);
-}
-if (!skillReference.includes("<jui-app-shell>") || !skillReference.includes("<jui-panel>")) {
-  errors.push("jun-ui skill reference must include core jui element examples");
+for (const term of requiredCombinedTerms) {
+  if (!combinedUserFacingText.includes(term)) {
+    errors.push(`user-facing docs missing ${term}`);
+  }
 }
 
-for (const required of [
-  "jun-ui.css",
-  "jun-ui.js",
-  "Spectrum Web Components",
-  "Context7",
-  "npm test",
-  "skills/jun-ui-static-pages/SKILL.md",
-]) {
-  if (!agents.includes(required)) errors.push(`AGENTS.md missing ${required}`);
+const skill = await requireFile("skills/jun-ui-page-delivery/SKILL.md");
+if (!skill.includes("name: jun-ui-page-delivery")) {
+  errors.push("page delivery skill must use the jun-ui-page-delivery name");
+}
+if (!skill.includes("Use when") || !skill.includes("Semi Design System")) {
+  errors.push("page delivery skill description must include concrete Semi page triggers");
+}
+if (!skill.includes("jun-ui build")) {
+  errors.push("page delivery skill must route page work through jun-ui build");
 }
 
-for (const required of [
-  "jun-ui-static-pages",
-  "Spectrum Web Components",
-  "Web Awesome",
-  "Bootstrap",
-  "Context7",
-  "file://",
-  "ui-library-demos",
-]) {
-  if (!decisionContext.includes(required)) {
-    errors.push(`docs/static-ui-decision-context.md missing ${required}`);
+let builderSmokeDir;
+try {
+  builderSmokeDir = await mkdtemp(path.join(tmpdir(), "jun-ui-builder-smoke-"));
+  const smokeConfig = path.join(root, "templates/workbench/jun-ui.page.json");
+  const { stdout } = await execFileAsync(process.execPath, [
+    path.join(root, "scripts/jun-ui.mjs"),
+    "build",
+    smokeConfig,
+    "--out",
+    builderSmokeDir,
+  ]);
+  const builtHtml = await readFile(path.join(builderSmokeDir, "index.html"), "utf8");
+  if (!builtHtml.includes("<!doctype html>") || !builtHtml.includes("data-jun-ui-artifact")) {
+    errors.push("builder smoke output must be a file-openable jun-ui artifact");
+  }
+  if (!stdout.includes("Built")) {
+    errors.push("builder smoke command must report a built artifact");
+  }
+} catch (error) {
+  errors.push(`builder smoke failed: ${error.message}`);
+} finally {
+  if (builderSmokeDir) {
+    await rm(builderSmokeDir, { recursive: true, force: true });
   }
 }
 
 const shouldCheckGlobalSkill = homedir() === "/Users/jun" || process.env.JUN_UI_REQUIRE_GLOBAL_SKILL === "1";
 if (shouldCheckGlobalSkill) {
-  const globalSkillPath = "/Users/jun/.codex/skills/jun-ui-static-pages/SKILL.md";
+  const globalSkillPath = "/Users/jun/.codex/skills/jun-ui-page-delivery/SKILL.md";
   try {
     const globalSkill = await readFile(globalSkillPath, "utf8");
-    if (!globalSkill.includes("name: jun-ui-static-pages")) {
-      errors.push("global jun-ui skill entrypoint has wrong skill name");
+    if (!globalSkill.includes("name: jun-ui-page-delivery")) {
+      errors.push("global jun-ui page delivery skill has wrong skill name");
     }
   } catch {
     errors.push(`missing global skill entrypoint: ${globalSkillPath}`);
   }
-}
 
-const examples = await readdir(path.join(root, "examples"));
-for (const file of examples.filter((name) => name.endsWith(".html"))) {
-  const body = await text(`examples/${file}`);
-  if (!body.includes("../jun-ui.css")) errors.push(`${file} does not import jun-ui.css`);
-  if (!body.includes("../jun-ui.js")) errors.push(`${file} does not import jun-ui.js`);
-  if (!body.includes("<sp-theme")) errors.push(`${file} does not use sp-theme`);
-  if (!body.includes("<jui-")) errors.push(`${file} does not use jun-ui elements`);
-}
-
-const syntaxCheck = spawnSync(process.execPath, ["--check", "jun-ui.js"], {
-  cwd: root,
-  encoding: "utf8",
-});
-if (syntaxCheck.status !== 0) {
-  errors.push(`jun-ui.js syntax check failed: ${syntaxCheck.stderr.trim()}`);
+  if (await fileExists("/Users/jun/.codex/skills/jun-ui-static-pages")) {
+    errors.push("old global jun-ui-static-pages skill entrypoint still exists");
+  }
 }
 
 if (errors.length > 0) {

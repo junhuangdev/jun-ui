@@ -1,9 +1,12 @@
 {
   "name": "@junhuangdev/jun-ui",
   "version": "0.1.0",
-  "description": "A no-build static-page design system and component wrapper for fast HTML-first tools.",
+  "description": "An installable AI page-building Skill, Design System, and Builder for Semi, Context7, Figma, and file-openable artifacts.",
   "type": "module",
   "private": false,
+  "bin": {
+    "jun-ui": "scripts/jun-ui.mjs"
+  },
   "homepage": "https://github.com/junhuangdev/jun-ui#readme",
   "repository": {
     "type": "git",
@@ -13,14 +16,19 @@
     "url": "https://github.com/junhuangdev/jun-ui/issues"
   },
   "scripts": {
+    "build:page": "node scripts/jun-ui.mjs build",
+    "doctor": "node scripts/jun-ui.mjs doctor",
     "test": "node scripts/validate.mjs"
   },
   "keywords": [
-    "design-system",
-    "web-components",
-    "no-build",
-    "static-html",
-    "spectrum"
+    "ai-page-delivery",
+    "ai-page-builder",
+    "builder",
+    "installable-skill",
+    "semi-design",
+    "context7",
+    "figma",
+    "file-openable"
   ],
   "license": "MIT"
 }

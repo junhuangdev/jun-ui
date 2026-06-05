@@ -1,69 +1,80 @@
 # jun-ui Design System
 
-`jun-ui` 的设计系统目标是让静态页面快速进入可用状态，同时保持稳定的信息层级和产品工具气质。
+`jun-ui` is an installable AI page-building Skill, Design System, and Builder. It defines how AI should use Semi Design System, Context7 CLI + Skills, Figma, and `jun-ui build` to create page artifacts Jun can inspect directly inside any target project.
 
-## 适用范围
+## One-Line Definition
 
-优先用于：
+Use the installable Skill and Builder to apply Semi Design System, assisted by Context7 CLI + Skills and Figma, and produce high-quality page artifacts that open through `file://`.
 
-- 本地工作台
-- AI 生成的静态原型
-- 管理台、设置页、表单页、详情页
-- 不值得引入完整前端构建链的小工具
+## Design Goal
 
-不优先用于：
+The goal is not to preserve a specific implementation process. The goal is to make the result fast to produce, visually coherent, interactive, and directly reviewable.
 
-- 强品牌营销页
-- 高度动画化的体验页
-- 已经有成熟项目内 Design System 的应用
-
-## 分层
-
-| 层 | 责任 |
+| Need | Design response |
 | --- | --- |
-| Spectrum Web Components | 可访问控件和基础组件 |
-| Spectrum tokens | 颜色、字号、间距和主题语义 |
-| `jun-ui.css` | 页面级 tokens、布局 primitives、状态样式 |
-| `jun-ui.js` | 高频组合 custom elements |
-| examples | AI 和人可复用的页面模板 |
+| Fast AI page creation | Reuse Semi components and project templates instead of inventing UI from scratch. |
+| Correct component usage | Use Context7 CLI + Skills and `ctx7` to check Semi APIs and examples before material implementation choices. |
+| Visual alignment | Use Figma when design intent, review, or reusable design assets matter. |
+| Direct review | Use `jun-ui build` to create a `file://` openable artifact with relative assets. |
+| Repeatability | Keep prompts, templates, build profiles, and validation rules in this repository. |
 
-## 核心 tokens
+## System Layers
 
-| Token | 用途 |
+```mermaid
+flowchart LR
+  A["Page request"] --> B["jun-ui-page-delivery Skill"]
+  B --> C["Target project page intent"]
+  C --> D["Figma when visual source or review is needed"]
+  C --> E["Context7 CLI + Skills Semi API check"]
+  E --> F["Semi Design System implementation"]
+  D --> F
+  F --> G["jun-ui Builder"]
+  G --> H["file:// openable artifact"]
+```
+
+## Roles
+
+| Part | Responsibility |
 | --- | --- |
-| `--jui-page-max` | 页面最大宽度 |
-| `--jui-gap` | 页面默认网格间距 |
-| `--jui-panel-radius` | panel 圆角，默认 8px |
-| `--jui-focus-ring` | 键盘焦点样式 |
+| Semi Design System | Product UI components, interaction primitives, and page-level composition building blocks. |
+| Context7 CLI + Skills | Required documentation retrieval mode; `ctx7` grounds AI before using Semi components. |
+| Figma | Visual source, review surface, and design-system bridge when a page needs shared design intent. |
+| Builder | Converts page intent and source code into portable built artifacts through `jun-ui build`. |
+| Skill | Installable entrypoint that makes AI choose the right path, use the selected tools correctly, and verify the result. |
+| Validation | Prevents stale instructions and checks the current delivery contract remains explicit. |
 
-## Layout primitives
+## Page Types
 
-| Class / Element | 用途 |
-| --- | --- |
-| `.jui-shell` / `<jui-app-shell>` | 页面外层容器 |
-| `.jui-toolbar` | 顶部操作区 |
-| `.jui-panel` / `<jui-panel>` | 内容面板 |
-| `.jui-grid` | 响应式网格 |
-| `.jui-stack` | 垂直节奏 |
+The system should support:
 
-## 组件规则
+- dashboards and operational consoles;
+- settings and configuration screens;
+- detail pages with metadata, history, and actions;
+- forms and multi-step workflows;
+- local tools and workbenches;
+- AI-generated prototypes that need product-grade UI.
 
-- Button、input、tabs、dialog、table 等底层控件交给 Spectrum。
-- `jun-ui` 只做页面骨架和高频组合。
-- 自定义组件使用 `jui-` 前缀，避免和底层库冲突。
-- 组件默认使用 light DOM，让页面 CSS 可以直接治理布局。
-- 组件应支持无 JavaScript 降级：核心内容在 HTML 中仍可读。
+## Delivery Contract
 
-## 页面模式
+A page is acceptable only when the final artifact:
 
-第一版固定三类模板：
+- opens through `file://`;
+- loads styles and scripts through relative paths;
+- shows the actual page experience immediately;
+- preserves key interactions without a dev server;
+- has no visible broken asset paths;
+- can be handed to a reviewer as a folder or single-file artifact.
 
-- Dashboard：概览、指标、列表、行动项。
-- Form：设置、字段、保存操作。
-- Detail：标题、元信息、分区、侧栏上下文。
+## Implementation Direction
 
-后续新页面应先判断是否能归入这三类，再新增 pattern。
+Default to Semi Design System for UI implementation. Use Context7 CLI + Skills before writing or changing substantial Semi code. MCP is optional. Stop before Semi implementation if no approved Context7 path is available. Use Figma when visual intent is part of the task. Allow compilation whenever it improves speed, quality, or component coverage, as long as the built result satisfies the delivery contract.
 
-## 兜底策略
+Use the Builder as the default execution surface. A target project should provide page intent, data, and output path; `jun-ui` should provide the installable Skill, Builder, Design System rules, and artifact verification.
 
-Web Awesome 保留为更自由的轻页面候选。Bootstrap 5 只在需要成熟 grid、utility class 或兼容速度时使用。默认静态产品页从 `jun-ui` 开始。
+## Non-Goals
+
+- Building a parallel UI component library.
+- Maintaining target project business adapters.
+- Treating source-level implementation purity as the main value.
+- Requiring a dev server to review the final page.
+- Letting AI rely on guessed component APIs when documentation can be checked.

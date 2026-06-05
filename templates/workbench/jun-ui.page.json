@@ -1,0 +1,35 @@
+{
+  "type": "workbench",
+  "title": "Jun UI Workbench Artifact",
+  "description": "A file-openable builder smoke page for validating the installable jun-ui Skill and Builder path.",
+  "lang": "en",
+  "out": "dist/workbench",
+  "metrics": [
+    {
+      "label": "Component system",
+      "value": "Semi",
+      "note": "Semi Design System is the default UI target."
+    },
+    {
+      "label": "Documentation",
+      "value": "ctx7",
+      "note": "Context7 CLI + Skills grounds substantial Semi work."
+    },
+    {
+      "label": "Artifact",
+      "value": "file://",
+      "note": "The final page must not require a dev server."
+    }
+  ],
+  "sections": [
+    {
+      "title": "Builder contract",
+      "description": "The target project provides page intent and data; jun-ui owns the installable Builder and artifact contract.",
+      "items": [
+        "Run jun-ui build from a target project or a global Skill workflow.",
+        "Write relative, movable HTML/CSS/JS artifacts back to the target project.",
+        "Keep Context7 and Figma out of browser runtime dependencies."
+      ]
+    }
+  ]
+}
