@@ -2195,6 +2195,40 @@ function hasNativeControlReset(text) {
   return /appearance\s*:\s*none/i.test(text);
 }
 
+// Hard gate: a page must consume the Design System, not fork it. Flag source CSS
+// that redefines a --jun-ui-* token or the .jui-stack / .jui-row layout utilities
+// (these are provided by the builder; redefining them drifts the system).
+function findSystemPrimitiveOverrides(text, fileLabel) {
+  const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  const violations = [];
+  for (const [index, line] of withoutComments.split(/\r?\n/).entries()) {
+    if (/(?:^|[;{]|\s)--jun-ui-[\w-]+\s*:/.test(line)) {
+      violations.push(`page CSS must consume jun-ui tokens via var(--jun-ui-*), not redefine them, in ${fileLabel}:${index + 1}`);
+    }
+    if (/(?:^|}|,)\s*\.jui-(?:stack|row)(?:--[\w-]+)?\s*[,{]/.test(line)) {
+      violations.push(`page CSS must not redefine the jun-ui layout utility .jui-stack / .jui-row in ${fileLabel}:${index + 1}`);
+    }
+  }
+  return violations;
+}
+
+// Advisory (non-blocking): surface hand-rolled status-tag spans (class names
+// ending in -pill / -chip) so they get migrated to the Semi Tag component
+// instead of silently diverging from the Design System.
+function findHandRolledTagAdvisories(text, fileLabel) {
+  const advisories = [];
+  const seen = new Set();
+  const pattern = /class(?:Name)?\s*=\s*("|')([^"']*\b[\w-]+-(?:pill|chip)\b[^"']*)\1/g;
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    const className = match[2].trim();
+    if (/\bsemi-/.test(className) || seen.has(className)) continue;
+    seen.add(className);
+    advisories.push(`hand-rolled status tag "${className}" — use the Semi Tag component in ${fileLabel}`);
+  }
+  return advisories;
+}
+
 async function verifyPage(argv) {
   const { artifactDir, outputFileName, sourceFiles, strict, scanArtifactCssColors } = await resolveVerifyTarget(argv);
   const htmlPath = path.join(artifactDir, outputFileName);
@@ -2206,6 +2240,7 @@ async function verifyPage(argv) {
     cssBodies.push([cssFile, await readFile(cssFile, "utf8")]);
   }
   const errors = [];
+  const advisories = [];
   const isTokenConsole = html.includes("data-jun-ui-token-console");
 
   if (!html.includes("data-jun-ui-artifact") && !isTokenConsole) {
@@ -2253,6 +2288,7 @@ async function verifyPage(argv) {
             }),
           );
           errors.push(...findNativeControlContractViolations(body, relativeSource));
+          advisories.push(...findHandRolledTagAdvisories(body, relativeSource));
         }
         if (sourceFile.endsWith(".css")) {
           errors.push(
@@ -2261,9 +2297,11 @@ async function verifyPage(argv) {
               allowReferenceDefinitions: false,
             }),
           );
+          errors.push(...findSystemPrimitiveOverrides(body, relativeSource));
         }
         if (/\.(?:mjs|js|jsx|ts|tsx)$/i.test(sourceFile)) {
           errors.push(...findNativeControlContractViolations(body, relativeSource));
+          advisories.push(...findHandRolledTagAdvisories(body, relativeSource));
         }
       }
     } else {
@@ -2290,6 +2328,11 @@ async function verifyPage(argv) {
     }
   }
 
+  if (advisories.length > 0) {
+    console.warn(
+      `jun-ui DS advisories (${advisories.length}, non-blocking):\n${advisories.map((advisory) => `- ${advisory}`).join("\n")}`,
+    );
+  }
   if (errors.length > 0) {
     throw new Error(`jun-ui page verification failed:\n${errors.map((error) => `- ${error}`).join("\n")}`);
   }

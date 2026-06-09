@@ -67,3 +67,14 @@ Before substantial Semi implementation:
 ## Target Project Boundary
 
 The target project should provide page intent, source data, and output location. The installable jun-ui Builder owns the reusable build behavior and writes the file-openable artifact back to that target project.
+
+## Design System Consistency Rules
+
+The Builder injects the Design System into every artifact: `--jun-ui-*` tokens, the Semi theme bridge (Semi components inherit the jun-ui accent and radius), and the `jui-stack` / `jui-row` layout utilities. Pages **consume** that system; they do not re-create or fork it. The recurring failure mode is a page that hand-rolls something the system already provides (its own blue, its own radius, its own pill, its own flex+gap) and so drifts out of sync. The rules below close that gap; `verify-page --strict` enforces or surfaces each one.
+
+- **Controls.** Interactive React/runtime pages use Semi components (`Button`, `Switch`, `Checkbox`, `TextArea`, …). The static `build` lane may use `jui-*` control classes. Never ship a raw native `button` / `input` / `textarea` / `select` without a Semi output class, a `jui-*` class, or `data-jun-ui-control`. (hard gate)
+- **Status tags.** Use the Semi `Tag` component for status labels and chips. Do not hand-roll tag spans (class names ending in `-pill` / `-chip`); these diverge from the themed Semi `Tag`. (advisory)
+- **Color.** Use `--jun-ui-*` tokens; never bare page colors. Semi components inherit the accent automatically through the theme bridge — do not re-skin them with hardcoded blues. (hard gate)
+- **Radius / geometry.** Comes from the theme bridge (`--jun-ui-radius`). Do not hardcode corner radii to re-create Semi defaults.
+- **Layout.** Compose vertical/horizontal rhythm with `jui-stack` (`--section` / `--tight` / `--end` / `--center`) and `jui-row` (`--between` / `--end` / `--start` / `--tight`), whose gaps come from spacing tokens. Apply `jui-stack` to a wrapper you control so a parent wrapper (e.g. Semi `<Spin>`) cannot silently drop the gap. Prefer these over ad-hoc `display:flex; gap: <px>`.
+- **Do not fork the system.** Page source CSS must not redefine `--jun-ui-*` tokens or the `.jui-stack` / `.jui-row` utilities. Alias them into local variables if needed (`--my-accent: var(--jun-ui-accent)`), but consume, never redefine. (hard gate)
