@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>jun-ui Project Redesign Starter</title>
+  <!-- jun-ui:styles -->
+</head>
+<body>
+  <main class="redesign-shell" data-jun-ui-static-fallback>
+    <aside class="redesign-rail" aria-label="Project redesign navigation">
+      <div class="rail-mark">jun-ui</div>
+      <nav class="rail-nav" aria-label="Redesign stages">
+        <a href="#overview">Overview</a>
+        <a href="#surface">Surface</a>
+        <a href="#gates">Gates</a>
+      </nav>
+    </aside>
+
+    <section class="redesign-main" id="overview">
+      <header class="redesign-hero">
+        <div>
+          <p class="eyebrow">Design System Redesign</p>
+          <h1 data-profile-title>Project workbench starter</h1>
+          <p class="hero-copy" data-profile-summary>
+            A file-openable jun-ui bundle starter for rebuilding dense local workbenches.
+          </p>
+        </div>
+        <div class="hero-status" aria-label="Artifact status">
+          <span class="status-dot"></span>
+          <span>file-openable bundle-app seed</span>
+        </div>
+      </header>
+
+      <section class="semi-host" id="semi-action-strip" aria-label="Semi action strip">
+        <div class="semi-fallback">
+          <strong>Semi controls loading</strong>
+          <span>The static fallback is visible before JavaScript takes over.</span>
+        </div>
+      </section>
+
+      <section class="redesign-grid" id="surface" aria-label="Redesign surface">
+        <article class="surface-card">
+          <p class="card-kicker">Surface</p>
+          <h2 data-profile-primary>Primary work area</h2>
+          <p data-profile-primary-note>Use this area for the central queue, report, or workspace body.</p>
+        </article>
+        <article class="surface-card">
+          <p class="card-kicker">Evidence</p>
+          <h2 data-profile-secondary>Evidence lane</h2>
+          <p data-profile-secondary-note>Expose source freshness, gaps, and review status near the work.</p>
+        </article>
+        <article class="surface-card">
+          <p class="card-kicker">Action</p>
+          <h2 data-profile-action>Next action</h2>
+          <p data-profile-action-note>Keep human-gated next actions explicit and copyable.</p>
+        </article>
+      </section>
+
+      <section class="gate-strip" id="gates" aria-label="Completion gates">
+        <div>
+          <p class="card-kicker">Gate</p>
+          <strong>Build</strong>
+          <span>Run project build or renderer.</span>
+        </div>
+        <div>
+          <p class="card-kicker">Gate</p>
+          <strong>Verify</strong>
+          <span>Run `verify-page --strict`.</span>
+        </div>
+        <div>
+          <p class="card-kicker">Gate</p>
+          <strong>Inspect</strong>
+          <span>Open the artifact through `file://`.</span>
+        </div>
+      </section>
+    </section>
+  </main>
+  <!-- jun-ui:scripts -->
+</body>
+</html>
+

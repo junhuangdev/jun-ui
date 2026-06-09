@@ -1,0 +1,15 @@
+{
+  "type": "personal-ops-redesign",
+  "title": "Personal Ops Today Redesign",
+  "description": "Shared jun-ui bundle-app starter for the Personal Ops Today secretary console redesign.",
+  "lang": "zh-CN",
+  "out": "site",
+  "fileName": "today.html",
+  "assetsDir": "today-assets",
+  "app": {
+    "html": "shell.html",
+    "entry": "app.jsx",
+    "styles": ["styles.css"]
+  }
+}
+

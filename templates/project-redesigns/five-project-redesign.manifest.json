@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "objective": "Redesign ai-radar, personal-ops, flowforge, macroPulse, and dubforge with the current jun-ui Design System.",
+  "sharedContract": {
+    "builder": "/Users/jun/workspace/jun-ui/scripts/jun-ui.mjs",
+    "designSystem": "jun-ui + Semi Design System",
+    "starter": "templates/project-redesigns/bundle-app-redesign-starter",
+    "tokenRule": "Target CSS must reference --jun-ui-* tokens or aliases derived from them. Do not define page color literals.",
+    "artifactRule": "Final pages must be file-openable, use relative assets, and avoid module scripts.",
+    "postflight": "jun-ui verify-page <config-or-artifact> --strict"
+  },
+  "projects": [
+    {
+      "id": "ai-radar",
+      "root": "/Users/jun/workspace/ai-radar",
+      "lane": "existing-bundle-app-redesign",
+      "artifact": "app/workbench/index.html",
+      "sourceFiles": [
+        "app/workbench/shell.html",
+        "app/workbench/styles.css",
+        "src/app.mjs",
+        "scripts/build-workbench-static.mjs"
+      ],
+      "preserve": [
+        "Obsidian remains sink only",
+        "data/static-data.js direct-open snapshot",
+        "report and view query semantics",
+        "existing DOM IDs unless paired with JS updates"
+      ],
+      "build": "npm run build:workbench",
+      "verify": "node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs verify-page app/workbench --strict",
+      "test": "npm test"
+    },
+    {
+      "id": "personal-ops",
+      "root": "/Users/jun/workspace/personal-ops",
+      "lane": "current-builder-redesign-or-bundle-upgrade",
+      "artifact": "site/today.html",
+      "sourceFiles": [
+        "tools/render_today.py",
+        "site/jun-ui.page.json",
+        "actions.md",
+        "storage.md"
+      ],
+      "preserve": [
+        "read-only Today page",
+        "single render_today.py refresh path",
+        "Obsidian backend contract",
+        "stable action IDs"
+      ],
+      "build": "python3 tools/render_today.py",
+      "verify": "node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs verify-page site/jun-ui.page.json --project-root /Users/jun/workspace/personal-ops --strict",
+      "test": ""
+    },
+    {
+      "id": "flowforge",
+      "root": "/Users/jun/workspace/flowforge",
+      "lane": "existing-bundle-app-redesign",
+      "artifacts": [
+        "app/static/index.html",
+        "app/static/content-workspace-prototype.html"
+      ],
+      "sourceFiles": [
+        "app/static/index.shell.html",
+        "app/static/styles.css",
+        "app/static/app.js",
+        "app/static/content-workspace-prototype.shell.html",
+        "app/static/content-workspace-prototype.css",
+        "app/static/content-workspace-prototype.js",
+        "scripts/build-static-pages.py"
+      ],
+      "preserve": [
+        "local-only boundary",
+        "no external publishing",
+        "Codex handoff workflow",
+        "existing element IDs unless paired with JS updates"
+      ],
+      "build": "python3 scripts/build-static-pages.py",
+      "verify": [
+        "node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs verify-page app/static/index.jun-ui.json --project-root /Users/jun/workspace/flowforge --strict",
+        "node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs verify-page app/static/content-workspace-prototype.jun-ui.json --project-root /Users/jun/workspace/flowforge --strict"
+      ],
+      "test": ""
+    },
+    {
+      "id": "macroPulse",
+      "root": "/Users/jun/workspace/macroPulse",
+      "lane": "new-file-openable-artifact",
+      "artifact": "site/macro-desk.html",
+      "proposedSourceFiles": [
+        "site/macro-desk.shell.html",
+        "site/macro-desk.css",
+        "site/macro-desk.mjs",
+        "site/macro-desk.jun-ui.json"
+      ],
+      "preserve": [
+        "Next app remains runtime surface",
+        "macro seed and reflection concepts",
+        "phase status, thesis review, evidence drivers, AI question lane, saved notes"
+      ],
+      "build": "node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs bundle-app site/macro-desk.jun-ui.json --project-root /Users/jun/workspace/macroPulse",
+      "verify": "node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs verify-page site/macro-desk.jun-ui.json --project-root /Users/jun/workspace/macroPulse --strict",
+      "test": "npm test"
+    },
+    {
+      "id": "dubforge",
+      "root": "/Users/jun/workspace/dubforge",
+      "lane": "new-file-openable-review-artifact",
+      "artifact": "frontend/jun-ui-workbench/index.html",
+      "proposedSourceFiles": [
+        "frontend/jun-ui-workbench/shell.html",
+        "frontend/jun-ui-workbench/styles.css",
+        "frontend/jun-ui-workbench/app.mjs",
+        "frontend/jun-ui-workbench/jun-ui.bundle.json"
+      ],
+      "preserve": [
+        "existing Vite/Arco production app",
+        "human gates",
+        "candidate discovery, production review, retrospective, closed-loop status",
+        "AI contract meanings"
+      ],
+      "build": "node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs bundle-app frontend/jun-ui-workbench/jun-ui.bundle.json --project-root /Users/jun/workspace/dubforge",
+      "verify": "node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs verify-page frontend/jun-ui-workbench/jun-ui.bundle.json --project-root /Users/jun/workspace/dubforge --strict",
+      "test": "cd frontend && npm test"
+    }
+  ]
+}

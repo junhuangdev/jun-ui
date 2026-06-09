@@ -1,0 +1,15 @@
+{
+  "type": "flowforge-content-redesign",
+  "title": "FlowForge Content Workspace Redesign",
+  "description": "Shared jun-ui bundle-app starter for the FlowForge content workspace prototype redesign.",
+  "lang": "zh-CN",
+  "out": "app/static",
+  "fileName": "content-workspace-prototype.html",
+  "assetsDir": "content-workspace-assets",
+  "app": {
+    "html": "shell.html",
+    "entry": "app.jsx",
+    "styles": ["styles.css"]
+  }
+}
+

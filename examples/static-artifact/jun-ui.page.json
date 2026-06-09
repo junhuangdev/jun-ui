@@ -1,0 +1,71 @@
+{
+  "type": "static-artifact-example",
+  "title": "jun-ui Static Artifact Example",
+  "description": "A file-openable dashboard produced through the static artifact lane.",
+  "lang": "en",
+  "out": "../../dist/examples/static-artifact",
+  "fileName": "index.html",
+  "assetsDir": "assets",
+  "metrics": [
+    {
+      "label": "Lane",
+      "value": "static",
+      "note": "Accepted through file:// review."
+    },
+    {
+      "label": "Data",
+      "value": "snapshot",
+      "note": "No runtime server required."
+    },
+    {
+      "label": "Gate",
+      "value": "strict",
+      "note": "Validated by verify-page."
+    }
+  ],
+  "sections": [
+    {
+      "title": "When to use",
+      "body": "Use the static lane when data is known at build time or can be bundled into the artifact.",
+      "items": [
+        "Reports, dashboards, and product snapshots.",
+        "Local tools that do not need server writes.",
+        "Review artifacts that must move as a folder."
+      ]
+    },
+    {
+      "title": "What jun-ui owns",
+      "body": "The Builder owns the repeatable static output shape.",
+      "items": [
+        "Semi Design System rendering.",
+        "Relative assets and classic scripts.",
+        "Token and native-control verification."
+      ]
+    }
+  ],
+  "actionsTitle": "Try the lane",
+  "actionsDescription": "Copy a prompt that should route to the static artifact lane.",
+  "actions": [
+    {
+      "action_id": "static_lane_prompt",
+      "label": "Build static report",
+      "role": "jun-ui Skill",
+      "intent": "Ask an agent to build a report that can be opened directly.",
+      "send_to": "Any target project Codex thread",
+      "cadence_hint": "Use when no runtime server state is required.",
+      "prompt": "Use jun-ui to build a file-openable dashboard artifact from the current project data. Keep the final result openable through file:// and run verify-page --strict.",
+      "tone": "primary"
+    }
+  ],
+  "postActionSections": [
+    {
+      "title": "Acceptance",
+      "body": "The final output is complete only after strict static verification passes.",
+      "items": [
+        "Open dist/examples/static-artifact/index.html through file://.",
+        "Confirm the page is nonblank and styled.",
+        "Confirm the action button and prompt field work."
+      ]
+    }
+  ]
+}

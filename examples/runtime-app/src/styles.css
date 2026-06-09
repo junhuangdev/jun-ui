@@ -1,0 +1,105 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--jun-ui-bg);
+  color: var(--jun-ui-ink);
+  font-family: var(--jun-ui-font-sans);
+  font-size: var(--jun-ui-font-size-body);
+  line-height: var(--jun-ui-line-height-body);
+  letter-spacing: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  font: inherit;
+}
+
+.runtime-fallback,
+.runtime-shell {
+  width: min(var(--jun-ui-page-max-width), calc(100vw - 40px));
+  margin: 0 auto;
+  padding: var(--jun-ui-page-padding-block) 0 var(--jun-ui-page-padding-bottom);
+}
+
+.runtime-fallback,
+.runtime-header,
+.runtime-card {
+  border: var(--jun-ui-border);
+  border-radius: var(--jun-ui-radius);
+  background: var(--jun-ui-panel);
+  box-shadow: var(--jun-ui-shadow);
+}
+
+.runtime-fallback,
+.runtime-header {
+  padding: var(--jun-ui-header-padding);
+}
+
+.runtime-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--jun-ui-header-gap);
+}
+
+.runtime-banner,
+.runtime-grid,
+.runtime-workspace {
+  margin-top: var(--jun-ui-section-gap);
+}
+
+.runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--jun-ui-grid-gap);
+}
+
+.runtime-workspace {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(360px, 1.15fr);
+  gap: var(--jun-ui-grid-gap);
+  align-items: start;
+}
+
+.runtime-card {
+  min-width: 0;
+}
+
+.runtime-card strong {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--jun-ui-font-size-metric);
+  line-height: var(--jun-ui-line-height-heading);
+}
+
+.semi-card {
+  border-radius: var(--jun-ui-radius);
+}
+
+.semi-table-row-cell {
+  vertical-align: middle;
+}
+
+@media (max-width: 760px) {
+  .runtime-fallback,
+  .runtime-shell {
+    width: calc(100vw - 24px);
+    padding: var(--jun-ui-page-padding-mobile-block) 0 var(--jun-ui-page-padding-mobile-bottom);
+  }
+
+  .runtime-header,
+  .runtime-workspace {
+    display: grid;
+  }
+
+  .runtime-grid {
+    grid-template-columns: 1fr;
+  }
+}

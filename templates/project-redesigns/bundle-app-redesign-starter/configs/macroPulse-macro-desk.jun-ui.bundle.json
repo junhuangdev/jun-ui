@@ -1,0 +1,15 @@
+{
+  "type": "macropulse-redesign",
+  "title": "macroPulse Macro Desk Redesign",
+  "description": "Shared jun-ui bundle-app starter for adding a macroPulse file-openable macro desk artifact.",
+  "lang": "zh-CN",
+  "out": "site",
+  "fileName": "macro-desk.html",
+  "assetsDir": "macro-desk-assets",
+  "app": {
+    "html": "shell.html",
+    "entry": "app.jsx",
+    "styles": ["styles.css"]
+  }
+}
+

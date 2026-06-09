@@ -1,0 +1,15 @@
+{
+  "type": "ai-radar-redesign",
+  "title": "AI Radar Workbench Redesign",
+  "description": "Shared jun-ui bundle-app starter for the AI Radar report workbench redesign.",
+  "lang": "zh-CN",
+  "out": "app/workbench",
+  "fileName": "index.html",
+  "assetsDir": "workbench-assets",
+  "app": {
+    "html": "shell.html",
+    "entry": "app.jsx",
+    "styles": ["styles.css"]
+  }
+}
+

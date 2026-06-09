@@ -1,0 +1,15 @@
+{
+  "type": "flowforge-redesign",
+  "title": "FlowForge Local Cockpit Redesign",
+  "description": "Shared jun-ui bundle-app starter for the FlowForge local cockpit redesign.",
+  "lang": "zh-CN",
+  "out": "app/static",
+  "fileName": "index.html",
+  "assetsDir": "assets",
+  "app": {
+    "html": "shell.html",
+    "entry": "app.jsx",
+    "styles": ["styles.css"]
+  }
+}
+

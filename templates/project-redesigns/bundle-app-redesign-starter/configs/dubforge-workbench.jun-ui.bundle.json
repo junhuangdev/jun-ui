@@ -1,0 +1,15 @@
+{
+  "type": "dubforge-redesign",
+  "title": "DubForge Workbench Redesign",
+  "description": "Shared jun-ui bundle-app starter for adding a DubForge human-gated review artifact.",
+  "lang": "zh-CN",
+  "out": "frontend/jun-ui-workbench",
+  "fileName": "index.html",
+  "assetsDir": "assets",
+  "app": {
+    "html": "shell.html",
+    "entry": "app.jsx",
+    "styles": ["styles.css"]
+  }
+}
+
