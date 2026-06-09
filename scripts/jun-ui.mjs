@@ -200,7 +200,27 @@ function renderLayoutUtilities() {
 .jui-row--between { justify-content: space-between; }
 .jui-row--end { justify-content: flex-end; }
 .jui-row--start { align-items: flex-start; }
-.jui-row--tight { gap: var(--jun-ui-inline-gap); }`;
+.jui-row--tight { gap: var(--jun-ui-inline-gap); }
+.jui-scroll-y {
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-gutter: stable;
+}
+.jui-scroll-y::-webkit-scrollbar {
+  width: 10px;
+}
+.jui-scroll-y::-webkit-scrollbar-track {
+  background: transparent;
+}
+.jui-scroll-y::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-color: var(--jun-ui-line);
+  background-clip: padding-box;
+}
+.jui-scroll-y::-webkit-scrollbar-thumb:hover {
+  background-color: var(--jun-ui-muted);
+}`;
 }
 
 function hasJunUiTokenDefinitions(text) {
