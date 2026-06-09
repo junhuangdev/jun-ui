@@ -174,6 +174,35 @@ function renderSemiThemeBridge(registry) {
 }`;
 }
 
+// Token-driven layout primitives, injected into every artifact alongside the
+// tokens. Pages compose vertical/horizontal rhythm from these instead of
+// hand-rolling flex + gap, so spacing/alignment stay consistent by construction
+// and a wrapper (e.g. Semi <Spin>) can no longer silently drop the gap. Apply
+// jui-stack to a wrapper you control rather than relying on a parent's gap.
+function renderLayoutUtilities() {
+  return `.jui-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jun-ui-stack-gap);
+  min-width: 0;
+}
+.jui-stack--section { gap: var(--jun-ui-section-gap); }
+.jui-stack--tight { gap: var(--jun-ui-inline-gap); }
+.jui-stack--end { align-items: flex-end; }
+.jui-stack--center { align-items: center; }
+.jui-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--jun-ui-action-gap);
+  min-width: 0;
+}
+.jui-row--between { justify-content: space-between; }
+.jui-row--end { justify-content: flex-end; }
+.jui-row--start { align-items: flex-start; }
+.jui-row--tight { gap: var(--jun-ui-inline-gap); }`;
+}
+
 function hasJunUiTokenDefinitions(text) {
   return /--jun-ui-bg\s*:/.test(text);
 }
@@ -429,7 +458,7 @@ function renderBundledAppHtml(config, sourceHtml, { jsFiles, cssFiles, dataScrip
 async function ensureBundleTokenCss({ tempOutDir, cssFiles, assetsDir }) {
   const registry = await loadTokenRegistry();
   const bridge = renderSemiThemeBridge(registry);
-  const tokenCss = `${renderTokenCssVariables(registry)}\n\n${bridge ? `${bridge}\n\n` : ""}`;
+  const tokenCss = `${renderTokenCssVariables(registry)}\n\n${bridge ? `${bridge}\n\n` : ""}${renderLayoutUtilities()}\n\n`;
   if (cssFiles.length > 0) {
     const firstCssPath = path.join(tempOutDir, cssFiles[0]);
     const existingCss = await readFile(firstCssPath, "utf8");
@@ -804,6 +833,8 @@ footer {
 }
 
 ${renderSemiThemeBridge(registry)}
+
+${renderLayoutUtilities()}
 `;
 }
 
