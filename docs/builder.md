@@ -1,8 +1,10 @@
 # jun-ui Builder
 
-The jun-ui Builder is the centralized build surface for the installable `jun-ui` Skill.
+The jun-ui Builder is the centralized build surface for the static artifact lane of the installable `jun-ui` Skill.
 
-It lets AI use the jun-ui Design System, Semi Design System, Context7 CLI + Skills, and Figma rules from any target project without making that target project own the frontend toolchain.
+It lets AI use the jun-ui Design System, Semi Design System, Context7 CLI + Skills, and Figma rules from any target project without making that target project own the frontend toolchain when the requested output can be accepted as a file-openable artifact.
+
+Runtime apps are different: the target project owns the server runtime, routes, data, auth, and deployment. The Builder can provide reference artifacts or static examples, but it is not the runtime app server.
 
 ## Command
 
@@ -25,6 +27,7 @@ node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs build <config.json>
 | Figma design review path | jun-ui Skill |
 | Page intent and source data | target project |
 | Final file-openable artifact | written back to target project |
+| Runtime server behavior | target project, not the Builder |
 
 ## Contract
 
@@ -33,8 +36,11 @@ node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs build <config.json>
 - Produce a final artifact that opens through `file://`.
 - Keep asset paths relative so the output folder is movable.
 - Do not add Context7, Figma, or builder dependencies to browser runtime output.
+- Run `jun-ui verify-page <config-or-artifact> --strict` after build and before delivery.
 - Verify `ctx7`, `context7-docs`, and `context7-cli` with `jun-ui doctor --strict`.
 - Stop before Semi implementation if Context7 CLI + Skills through `ctx7` is unavailable.
+
+For runtime app work, use `docs/delivery-lanes.md` first. The app should still follow the Design System contract, but final verification should prove the served URL and server-backed behavior instead of only checking a built artifact.
 
 ## Context7 Gate
 
@@ -64,6 +70,14 @@ The `jun-ui build` interface stays stable:
 jun-ui build <config.json> [--out <dir>] [--project-root <dir>]
 ```
 
+The postflight verifier checks the built artifact and Design System token usage:
+
+```bash
+jun-ui verify-page <config-or-artifact> [--out <dir>] [--project-root <dir>] [--strict]
+```
+
+When passed a config file, it verifies the configured output and scans target project source styles declared by the config. When passed an artifact directory, it verifies `index.html` and local CSS directly. Strict mode rejects handwritten UI colors where `--jun-ui-*` tokens should be used.
+
 For an existing target-project workbench that already has its own browser client, use:
 
 ```bash
@@ -79,6 +93,8 @@ Rules:
 - `config.actions` can add prompt-copy action cards for local workbenches and workflow entry pages.
 - The Builder replaces only the target HTML file and the selected asset directory, so sibling files such as JSON reports stay intact.
 - Vite, React, and Semi dependencies stay in `jun-ui`; target projects receive only built HTML, CSS, and JavaScript.
+- `bundle-app` entries may import React, Semi Design System, and Semi icons from the centralized Builder dependencies instead of adding those packages to the target project.
+- `bundle-app` injects the shared `--jun-ui-*` token definitions into the bundled CSS. Target project styles should reference those tokens instead of defining their own color values.
 - The browser output must not require module scripts, a dev server, Context7, or Figma.
 
 ## Config Shape
