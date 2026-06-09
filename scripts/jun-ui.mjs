@@ -129,6 +129,39 @@ ${declarations}
 }`;
 }
 
+function hexToRgbTriple(value) {
+  const hex = String(value).trim().replace(/^#/, "");
+  const full = hex.length === 3 ? hex.split("").map((channel) => channel + channel).join("") : hex.slice(0, 6);
+  if (!/^[0-9a-fA-F]{6}$/.test(full)) return null;
+  const int = parseInt(full, 16);
+  return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
+}
+
+function darkenTriple({ r, g, b }, amount) {
+  const f = (channel) => Math.max(0, Math.min(255, Math.round(channel * (1 - amount))));
+  return `${f(r)}, ${f(g)}, ${f(b)}`;
+}
+
+// Bridge Semi Design System's brand-blue scale to --jun-ui-accent so Semi
+// components (Button/Tag/Banner/links/focus) render in the jun-ui accent
+// instead of Semi's default blue. Semi defines these vars on <body>, so target
+// body[data-jun-ui-artifact] (present on every jun-ui artifact) to win on
+// specificity regardless of stylesheet order. Semi derives
+// --semi-color-primary/link/focus and light tints from --semi-blue-5, so
+// overriding the 5/6/7 steps recolors the whole primary family. Lighter tints
+// (blue-0..4) intentionally fall back to Semi defaults.
+function renderSemiThemeBridge(registry) {
+  const accent = registry.tokens.find((token) => token.name === "--jun-ui-accent");
+  const rgb = accent ? hexToRgbTriple(accent.value) : null;
+  if (!rgb) return "";
+  const base = `${rgb.r}, ${rgb.g}, ${rgb.b}`;
+  return `body[data-jun-ui-artifact] {
+  --semi-blue-5: ${base};
+  --semi-blue-6: ${darkenTriple(rgb, 0.12)};
+  --semi-blue-7: ${darkenTriple(rgb, 0.24)};
+}`;
+}
+
 function hasJunUiTokenDefinitions(text) {
   return /--jun-ui-bg\s*:/.test(text);
 }
@@ -383,7 +416,8 @@ function renderBundledAppHtml(config, sourceHtml, { jsFiles, cssFiles, dataScrip
 
 async function ensureBundleTokenCss({ tempOutDir, cssFiles, assetsDir }) {
   const registry = await loadTokenRegistry();
-  const tokenCss = `${renderTokenCssVariables(registry)}\n\n`;
+  const bridge = renderSemiThemeBridge(registry);
+  const tokenCss = `${renderTokenCssVariables(registry)}\n\n${bridge ? `${bridge}\n\n` : ""}`;
   if (cssFiles.length > 0) {
     const firstCssPath = path.join(tempOutDir, cssFiles[0]);
     const existingCss = await readFile(firstCssPath, "utf8");
@@ -756,6 +790,8 @@ footer {
     font-size: var(--jun-ui-font-size-h1-mobile);
   }
 }
+
+${renderSemiThemeBridge(registry)}
 `;
 }
 
