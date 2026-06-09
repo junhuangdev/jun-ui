@@ -142,14 +142,23 @@ function darkenTriple({ r, g, b }, amount) {
   return `${f(r)}, ${f(g)}, ${f(b)}`;
 }
 
-// Bridge Semi Design System's brand-blue scale to --jun-ui-accent so Semi
-// components (Button/Tag/Banner/links/focus) render in the jun-ui accent
-// instead of Semi's default blue. Semi defines these vars on <body>, so target
-// body[data-jun-ui-artifact] (present on every jun-ui artifact) to win on
-// specificity regardless of stylesheet order. Semi derives
-// --semi-color-primary/link/focus and light tints from --semi-blue-5, so
-// overriding the 5/6/7 steps recolors the whole primary family. Lighter tints
-// (blue-0..4) intentionally fall back to Semi defaults.
+// Theme Semi Design System with jun-ui design tokens so Semi components match
+// the jun-ui look instead of Semi's defaults. This is the "jun-ui = Semi +
+// tokens" layer: jun-ui does not ship a parallel component framework, it themes
+// Semi. Semi defines its vars on <body>, so target body[data-jun-ui-artifact]
+// (present on every jun-ui artifact) to win on specificity regardless of
+// stylesheet order.
+//
+// Color: Semi derives --semi-color-primary/link/focus and light tints from
+// --semi-blue-5, so overriding the 5/6/7 steps recolors the whole primary
+// family from --jun-ui-accent. Lighter tints (blue-0..4) and semantic
+// orange/red/green stay Semi defaults.
+//
+// Geometry: Semi's radius ramp (buttons/inputs/tags use -small, cards use
+// -medium) is re-derived from --jun-ui-radius so corners match jun-ui instead
+// of Semi's 3/6/12px. Font family/size and control heights are hardcoded inside
+// Semi component CSS (no variable to map), so they stay Semi-native — already
+// consistent across Semi pages.
 function renderSemiThemeBridge(registry) {
   const accent = registry.tokens.find((token) => token.name === "--jun-ui-accent");
   const rgb = accent ? hexToRgbTriple(accent.value) : null;
@@ -159,6 +168,9 @@ function renderSemiThemeBridge(registry) {
   --semi-blue-5: ${base};
   --semi-blue-6: ${darkenTriple(rgb, 0.12)};
   --semi-blue-7: ${darkenTriple(rgb, 0.24)};
+  --semi-border-radius-small: calc(var(--jun-ui-radius) * 0.75);
+  --semi-border-radius-medium: var(--jun-ui-radius);
+  --semi-border-radius-large: calc(var(--jun-ui-radius) * 1.5);
 }`;
 }
 
