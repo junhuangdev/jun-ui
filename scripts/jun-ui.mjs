@@ -205,6 +205,9 @@ function renderLayoutUtilities() {
   overflow-y: auto;
   min-height: 0;
   scrollbar-gutter: stable;
+  /* End breathing room: scrolled-to-bottom content must never sit flush
+     against the container edge. Bundled here so pages cannot forget it. */
+  padding-bottom: var(--jun-ui-section-gap);
 }
 .jui-scroll-y::-webkit-scrollbar {
   width: 10px;
