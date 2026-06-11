@@ -178,11 +178,25 @@
       "usage": "用于页面页头和主摘要面板内部。"
     },
     {
+      "name": "--jun-ui-micro-gap",
+      "value": "4px",
+      "group": "spacing",
+      "role": "微间距",
+      "usage": "用于分段条、行内徽标等最小间隔。"
+    },
+    {
       "name": "--jun-ui-inline-gap",
       "value": "6px",
       "group": "spacing",
       "role": "行内元信息间距",
       "usage": "用于小图标、标签和元信息之间。"
+    },
+    {
+      "name": "--jun-ui-item-gap",
+      "value": "8px",
+      "group": "spacing",
+      "role": "同组条目间距",
+      "usage": "用于卡片内部条目、表单与底栏按钮等同组元素之间。"
     },
     {
       "name": "--jun-ui-grid-gap",
