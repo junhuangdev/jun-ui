@@ -2263,6 +2263,30 @@ function findHandRolledTagAdvisories(text, fileLabel) {
   return advisories;
 }
 
+// Advisory (non-blocking): surface CSS rules that bound height and also set
+// overflow hidden — the delivery contract's clipped-scroll-region gate.
+// Static analysis cannot tell a content region from a decorative crop
+// (thumbnail, avatar, image mask), so this surfaces candidates for review
+// instead of blocking the build.
+function findClippedScrollAdvisories(text, fileLabel) {
+  const advisories = [];
+  const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rulePattern = /([^{}]+)\{([^{}]*)\}/g;
+  let match;
+  while ((match = rulePattern.exec(withoutComments)) !== null) {
+    const selector = match[1].trim().replace(/\s+/g, " ");
+    const body = match[2];
+    if (!/overflow(?:-y)?\s*:\s*hidden/.test(body)) continue;
+    if (!/(?:^|[;\s])(?:max-)?height\s*:\s*(?!auto\b|none\b|fit-content\b|min-content\b|max-content\b)/.test(body)) {
+      continue;
+    }
+    advisories.push(
+      `height-bounded rule "${selector}" hides overflow — a content region must scroll (jui-scroll-y); keep hidden only for decorative crops, in ${fileLabel}`,
+    );
+  }
+  return advisories;
+}
+
 async function verifyPage(argv) {
   const { artifactDir, outputFileName, sourceFiles, strict, scanArtifactCssColors } = await resolveVerifyTarget(argv);
   const htmlPath = path.join(artifactDir, outputFileName);
@@ -2332,6 +2356,7 @@ async function verifyPage(argv) {
             }),
           );
           errors.push(...findSystemPrimitiveOverrides(body, relativeSource));
+          advisories.push(...findClippedScrollAdvisories(body, relativeSource));
         }
         if (/\.(?:mjs|js|jsx|ts|tsx)$/i.test(sourceFile)) {
           errors.push(...findNativeControlContractViolations(body, relativeSource));

@@ -660,7 +660,7 @@ try {
   const goodContractProject = path.join(verifyPageSmokeDir, "contract-good");
   const badContractProject = path.join(verifyPageSmokeDir, "contract-bad");
   const artifactOnlyProject = path.join(verifyPageSmokeDir, "artifact-only-bad");
-  async function writeContractProject(projectDir, { badEntry = false } = {}) {
+  async function writeContractProject(projectDir, { badEntry = false, clippedScroll = false } = {}) {
     const artifactDir = path.join(projectDir, "dist");
     const sourceDir = path.join(projectDir, "src");
     await mkdir(path.join(artifactDir, "assets"), { recursive: true });
@@ -692,6 +692,7 @@ try {
         ":root { --contract-bg: var(--jun-ui-bg); }",
         "button, input, textarea, select { appearance: none; }",
         ".jui-button { color: var(--jun-ui-accent); background: var(--jun-ui-panel); border-color: var(--jun-ui-line); }",
+        ...(clippedScroll ? [".clip-region { max-height: 120px; overflow: hidden; }"] : []),
       ].join("\n"),
       "utf8",
     );
@@ -753,6 +754,23 @@ try {
   }
   if (!badContractOutput.includes("native control")) {
     errors.push("verify-page strict smoke must explain native control contract violations");
+  }
+
+  const clipAdvisoryProject = path.join(verifyPageSmokeDir, "contract-clip-advisory");
+  await writeContractProject(clipAdvisoryProject, { clippedScroll: true });
+  const { stdout: clipStdout, stderr: clipStderr } = await execFileAsync(process.execPath, [
+    path.join(root, "scripts/jun-ui.mjs"),
+    "verify-page",
+    path.join(clipAdvisoryProject, "jun-ui.bundle.json"),
+    "--project-root",
+    clipAdvisoryProject,
+    "--strict",
+  ]);
+  if (!clipStdout.includes("jun-ui page verification passed")) {
+    errors.push("verify-page strict smoke must keep clipped-scroll findings non-blocking");
+  }
+  if (!`${clipStdout}\n${clipStderr}`.includes("jui-scroll-y")) {
+    errors.push("verify-page strict smoke must surface clipped scroll regions as advisories");
   }
 
   await mkdir(path.join(artifactOnlyProject, "dist", "assets"), { recursive: true });
