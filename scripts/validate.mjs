@@ -697,6 +697,7 @@ try {
               ".clip-region { max-height: 120px; overflow: hidden; }",
               ".rounded-card { border-radius: 8px; }",
               ".adhoc-row { display: flex; gap: 12px; }",
+              ".inner-scroll { max-height: calc(100vh - 200px); overflow-y: auto; }",
             ]
           : []),
       ].join("\n"),
@@ -797,6 +798,9 @@ try {
   }
   if (!advisoryOutput.includes("solid primary")) {
     errors.push("verify-page strict smoke must surface multiple solid primary buttons as advisories");
+  }
+  if (!advisoryOutput.includes("one scroll region")) {
+    errors.push("verify-page strict smoke must surface viewport-bound max-height rules as nested-scroll advisories");
   }
 
   await mkdir(path.join(artifactOnlyProject, "dist", "assets"), { recursive: true });

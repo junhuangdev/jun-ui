@@ -2287,6 +2287,25 @@ function findClippedScrollAdvisories(text, fileLabel) {
   return advisories;
 }
 
+// Advisory (non-blocking): surface viewport-bound max-height rules in source
+// CSS — the signature of an inner scroller nested inside an already-scrolling
+// surface (sheet/modal body). The contract allows one scroll region per
+// surface; pinned actions belong in the component's footer slot instead.
+function findNestedScrollAdvisories(text, fileLabel) {
+  const advisories = [];
+  const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rulePattern = /([^{}]+)\{([^{}]*)\}/g;
+  let match;
+  while ((match = rulePattern.exec(withoutComments)) !== null) {
+    if (!/max-height\s*:\s*[^;}]*[\d.]vh/.test(match[2])) continue;
+    const selector = match[1].trim().replace(/\s+/g, " ");
+    advisories.push(
+      `viewport-bound max-height on "${selector}" — usually an inner scroller; keep one scroll region per surface and pin actions with the component footer slot (e.g. SideSheet footer), in ${fileLabel}`,
+    );
+  }
+  return advisories;
+}
+
 // Advisory (non-blocking): surface hardcoded corner radii in source CSS.
 // Radius comes from the theme bridge (--jun-ui-radius); literal values drift
 // from the system. Allowed idioms: token/alias consumption (var/calc), 0,
@@ -2421,6 +2440,7 @@ async function verifyPage(argv) {
           );
           errors.push(...findSystemPrimitiveOverrides(body, relativeSource));
           advisories.push(...findClippedScrollAdvisories(body, relativeSource));
+          advisories.push(...findNestedScrollAdvisories(body, relativeSource));
           advisories.push(...findHardcodedRadiusAdvisories(body, relativeSource));
           advisories.push(...findAdHocFlexGapAdvisories(body, relativeSource));
         }
