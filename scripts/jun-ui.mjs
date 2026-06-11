@@ -2287,6 +2287,70 @@ function findClippedScrollAdvisories(text, fileLabel) {
   return advisories;
 }
 
+// Advisory (non-blocking): surface hardcoded corner radii in source CSS.
+// Radius comes from the theme bridge (--jun-ui-radius); literal values drift
+// from the system. Allowed idioms: token/alias consumption (var/calc), 0,
+// 50% circles, and 999px/9999px pills — none of those re-create Semi
+// defaults by hand.
+function findHardcodedRadiusAdvisories(text, fileLabel) {
+  const advisories = [];
+  const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rulePattern = /([^{}]+)\{([^{}]*)\}/g;
+  let match;
+  while ((match = rulePattern.exec(withoutComments)) !== null) {
+    const selector = match[1].trim().replace(/\s+/g, " ");
+    const declPattern = /border(?:-[a-z]+)*-radius\s*:\s*([^;}]+)/g;
+    let decl;
+    while ((decl = declPattern.exec(match[2])) !== null) {
+      const value = decl[1].trim();
+      if (/var\(/.test(value)) continue;
+      if (/^(0|50%|9{3,4}px|inherit|initial|unset)$/.test(value)) continue;
+      advisories.push(
+        `hardcoded corner radius "${value}" on "${selector}" — consume var(--jun-ui-radius) (or a local alias) instead, in ${fileLabel}`,
+      );
+    }
+  }
+  return advisories;
+}
+
+// Advisory (non-blocking, aggregated per file): surface ad-hoc flex+gap
+// rules using literal gaps. The contract prefers jui-stack / jui-row (or at
+// least token-driven gap values) so page rhythm stays system-owned. Existing
+// pages can carry many of these, so report one summary line per file instead
+// of one line per rule.
+function findAdHocFlexGapAdvisories(text, fileLabel) {
+  const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rulePattern = /([^{}]+)\{([^{}]*)\}/g;
+  const selectors = [];
+  let match;
+  while ((match = rulePattern.exec(withoutComments)) !== null) {
+    const body = match[2];
+    if (!/display\s*:\s*(?:inline-)?flex/.test(body)) continue;
+    if (!/(?:^|[;\s])gap\s*:\s*[\d.]+(?:px|rem|em)/.test(body)) continue;
+    selectors.push(match[1].trim().replace(/\s+/g, " "));
+  }
+  if (selectors.length === 0) return [];
+  const sample = selectors.slice(0, 3).map((selector) => `"${selector}"`).join(", ");
+  return [
+    `${selectors.length} ad-hoc flex+gap rule(s) with literal gaps (e.g. ${sample}) — prefer jui-stack / jui-row or gap: var(--jun-ui-*), in ${fileLabel}`,
+  ];
+}
+
+// Advisory (non-blocking): the affordance hierarchy allows one solid primary
+// action per view/section. A file is a coarse proxy for a view, so more than
+// one solid primary Button in one source file is surfaced for review rather
+// than blocked — multi-view files can be legitimate.
+function findMultiplePrimaryAdvisories(text, fileLabel) {
+  const tags = text.match(/<Button\b[^>]*>/g) ?? [];
+  const solidPrimaries = tags.filter(
+    (tag) => /theme\s*=\s*["']solid["']/.test(tag) && /type\s*=\s*["']primary["']/.test(tag),
+  );
+  if (solidPrimaries.length <= 1) return [];
+  return [
+    `${solidPrimaries.length} solid primary Buttons in one file — the affordance hierarchy allows one per view/section; demote extras or confirm they sit in separate views, in ${fileLabel}`,
+  ];
+}
+
 async function verifyPage(argv) {
   const { artifactDir, outputFileName, sourceFiles, strict, scanArtifactCssColors } = await resolveVerifyTarget(argv);
   const htmlPath = path.join(artifactDir, outputFileName);
@@ -2357,10 +2421,13 @@ async function verifyPage(argv) {
           );
           errors.push(...findSystemPrimitiveOverrides(body, relativeSource));
           advisories.push(...findClippedScrollAdvisories(body, relativeSource));
+          advisories.push(...findHardcodedRadiusAdvisories(body, relativeSource));
+          advisories.push(...findAdHocFlexGapAdvisories(body, relativeSource));
         }
         if (/\.(?:mjs|js|jsx|ts|tsx)$/i.test(sourceFile)) {
           errors.push(...findNativeControlContractViolations(body, relativeSource));
           advisories.push(...findHandRolledTagAdvisories(body, relativeSource));
+          advisories.push(...findMultiplePrimaryAdvisories(body, relativeSource));
         }
       }
     } else {

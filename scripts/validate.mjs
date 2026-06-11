@@ -660,7 +660,7 @@ try {
   const goodContractProject = path.join(verifyPageSmokeDir, "contract-good");
   const badContractProject = path.join(verifyPageSmokeDir, "contract-bad");
   const artifactOnlyProject = path.join(verifyPageSmokeDir, "artifact-only-bad");
-  async function writeContractProject(projectDir, { badEntry = false, clippedScroll = false } = {}) {
+  async function writeContractProject(projectDir, { badEntry = false, withAdvisories = false } = {}) {
     const artifactDir = path.join(projectDir, "dist");
     const sourceDir = path.join(projectDir, "src");
     await mkdir(path.join(artifactDir, "assets"), { recursive: true });
@@ -692,7 +692,13 @@ try {
         ":root { --contract-bg: var(--jun-ui-bg); }",
         "button, input, textarea, select { appearance: none; }",
         ".jui-button { color: var(--jun-ui-accent); background: var(--jun-ui-panel); border-color: var(--jun-ui-line); }",
-        ...(clippedScroll ? [".clip-region { max-height: 120px; overflow: hidden; }"] : []),
+        ...(withAdvisories
+          ? [
+              ".clip-region { max-height: 120px; overflow: hidden; }",
+              ".rounded-card { border-radius: 8px; }",
+              ".adhoc-row { display: flex; gap: 12px; }",
+            ]
+          : []),
       ].join("\n"),
       "utf8",
     );
@@ -700,7 +706,17 @@ try {
       path.join(sourceDir, "app.mjs"),
       badEntry
         ? 'document.body.insertAdjacentHTML("beforeend", `<button type="button">Bad dynamic action</button>`);'
-        : 'const semiButtonExample = `<Button type="primary">Semi OK</Button>`;\nconst jsxNativeControl = <button className={`jui-button ${state ? "active" : ""}`} type="button">JSX OK</button>;\ndocument.body.insertAdjacentHTML("beforeend", `<button class="jui-button" type="button">Dynamic OK</button>`);',
+        : [
+            'const semiButtonExample = `<Button type="primary">Semi OK</Button>`;',
+            'const jsxNativeControl = <button className={`jui-button ${state ? "active" : ""}`} type="button">JSX OK</button>;',
+            'document.body.insertAdjacentHTML("beforeend", `<button class="jui-button" type="button">Dynamic OK</button>`);',
+            ...(withAdvisories
+              ? [
+                  'const primaryA = `<Button theme="solid" type="primary">A</Button>`;',
+                  'const primaryB = `<Button theme="solid" type="primary">B</Button>`;',
+                ]
+              : []),
+          ].join("\n"),
       "utf8",
     );
     await writeFile(
@@ -756,21 +772,31 @@ try {
     errors.push("verify-page strict smoke must explain native control contract violations");
   }
 
-  const clipAdvisoryProject = path.join(verifyPageSmokeDir, "contract-clip-advisory");
-  await writeContractProject(clipAdvisoryProject, { clippedScroll: true });
-  const { stdout: clipStdout, stderr: clipStderr } = await execFileAsync(process.execPath, [
+  const advisoryProject = path.join(verifyPageSmokeDir, "contract-advisories");
+  await writeContractProject(advisoryProject, { withAdvisories: true });
+  const { stdout: advisoryStdout, stderr: advisoryStderr } = await execFileAsync(process.execPath, [
     path.join(root, "scripts/jun-ui.mjs"),
     "verify-page",
-    path.join(clipAdvisoryProject, "jun-ui.bundle.json"),
+    path.join(advisoryProject, "jun-ui.bundle.json"),
     "--project-root",
-    clipAdvisoryProject,
+    advisoryProject,
     "--strict",
   ]);
-  if (!clipStdout.includes("jun-ui page verification passed")) {
-    errors.push("verify-page strict smoke must keep clipped-scroll findings non-blocking");
+  if (!advisoryStdout.includes("jun-ui page verification passed")) {
+    errors.push("verify-page strict smoke must keep DS advisories non-blocking");
   }
-  if (!`${clipStdout}\n${clipStderr}`.includes("jui-scroll-y")) {
+  const advisoryOutput = `${advisoryStdout}\n${advisoryStderr}`;
+  if (!advisoryOutput.includes("jui-scroll-y")) {
     errors.push("verify-page strict smoke must surface clipped scroll regions as advisories");
+  }
+  if (!advisoryOutput.includes("corner radius")) {
+    errors.push("verify-page strict smoke must surface hardcoded corner radii as advisories");
+  }
+  if (!advisoryOutput.includes("jui-stack")) {
+    errors.push("verify-page strict smoke must surface ad-hoc flex+gap rules as advisories");
+  }
+  if (!advisoryOutput.includes("solid primary")) {
+    errors.push("verify-page strict smoke must surface multiple solid primary buttons as advisories");
   }
 
   await mkdir(path.join(artifactOnlyProject, "dist", "assets"), { recursive: true });

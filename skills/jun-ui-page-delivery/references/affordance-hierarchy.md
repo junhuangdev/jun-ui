@@ -20,6 +20,8 @@ Apply on every jun-ui page so "what is clickable" reads consistently. A page mus
 - **Mixed sizes for one tier** in one zone (a short `Tag` beside a taller `Button`).
 - **Plain text links as primary navigation** when the page uses buttons elsewhere — match the established control language.
 
+`verify-page --strict` surfaces more than one `theme="solid" type="primary"` Button per source file as a non-blocking advisory (a file is a coarse proxy for a view — multi-view files can be legitimate). The remaining anti-patterns are review-only; this document is their carrier.
+
 ## Semantic state colors
 
 jun-ui exposes a single `--jun-ui-accent` and **no** semantic color tokens. Express warn / success / danger / lock states through Semi component props (`Tag color="orange|red|green|blue"`, `Banner type="danger|success"`, `Button type=...`), **never** bare colors in source CSS — `verify-page --strict` rejects bare page colors. Semi carries those colors in its own bundled CSS, which the strict source-CSS scan does not touch.
