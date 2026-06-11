@@ -223,6 +223,15 @@ function renderLayoutUtilities() {
 }
 .jui-scroll-y::-webkit-scrollbar-thumb:hover {
   background-color: var(--jun-ui-muted);
+}
+/* Semi SideSheet scrolls its own body (Semi default: padding 0 24px — zero
+   bottom padding), bypassing .jui-scroll-y, so the contract's scroll end
+   breathing room is baked in at the component layer instead of relying on a
+   per-page wrapper that call sites keep forgetting. Riding on
+   body[data-jun-ui-artifact] outranks Semi's own rule regardless of
+   stylesheet order. */
+body[data-jun-ui-artifact] .semi-sidesheet-body {
+  padding-bottom: var(--jun-ui-section-gap);
 }`;
 }
 
@@ -1975,6 +1984,8 @@ function dependencyAliases() {
     "@douyinfe/semi-ui",
     "react",
     "react-dom",
+    "react-markdown",
+    "remark-gfm",
   ];
   return Object.fromEntries(
     packageNames.map((packageName) => [packageName, path.join(repoRoot, "node_modules", packageName)]),

@@ -852,6 +852,19 @@ try {
   if (!assets.some((asset) => asset.endsWith(".css"))) {
     errors.push("builder smoke output must include a bundled CSS asset");
   }
+  let builderSmokeCss = "";
+  for (const asset of assets.filter((asset) => asset.endsWith(".css"))) {
+    builderSmokeCss += await readFile(path.join(builderSmokeDir, "assets", asset), "utf8");
+  }
+  if (
+    !/\.semi-sidesheet-body[^{}]*\{[^{}]*padding-bottom:\s*var\(--jun-ui-section-gap\)/.test(
+      builderSmokeCss,
+    )
+  ) {
+    errors.push(
+      "builder smoke CSS must bake scroll end breathing room into Semi SideSheet bodies (delivery-contract hard gate)",
+    );
+  }
   if (!stdout.includes("Built")) {
     errors.push("builder smoke command must report a built artifact");
   }
