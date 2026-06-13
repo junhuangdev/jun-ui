@@ -1,6 +1,6 @@
 # Information Architecture And Visual Hierarchy
 
-Use this reference before composing a Jun product page with Semi Design System, Context7, Figma, the installable `jun-ui-page-delivery` Skill, or the `jun-ui` Builder. It applies to `file://` file-openable static artifacts and server-backed runtime app surfaces.
+Use this reference before composing a Jun product page with Semi Design System, Context7, Figma, the installable `jun-ui-design-system` Skill, or the `jun-ui` Builder. It applies to `file://` file-openable static artifacts and server-backed runtime app surfaces.
 
 ## Required Pre-Composition Packet
 

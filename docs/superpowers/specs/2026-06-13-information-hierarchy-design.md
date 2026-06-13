@@ -8,7 +8,7 @@
 
 ### Recommended Approach
 
-Add a source-backed page hierarchy doctrine, a fast Skill checklist, and validation checks that keep the doctrine wired into user-facing docs and `jun-ui-page-delivery`.
+Add a source-backed page hierarchy doctrine, a fast Skill checklist, and validation checks that keep the doctrine wired into user-facing docs and `jun-ui-design-system`.
 
 ### Visual Overview
 
@@ -60,7 +60,7 @@ AI-generated pages often fail even when they use acceptable components. The comm
 
 Create `docs/page-information-architecture.md` as the canonical doctrine. It explains the source model, weight tiers, layout rules, typography rules, first-screen tests, anti-patterns, and relationship to existing affordance and delivery rules.
 
-Create `skills/jun-ui-page-delivery/references/information-architecture.md` as the fast execution reference. It contains the required pre-composition packet, weight-to-UI mapping, mandatory checks, reject rules, and a compact review prompt.
+Create `skills/jun-ui-design-system/references/information-architecture.md` as the fast execution reference. It contains the required pre-composition packet, weight-to-UI mapping, mandatory checks, reject rules, and a compact review prompt.
 
 Update the main Skill and user-facing docs so agents read and apply the new reference before composing page layout. The Skill should classify page job, primary information, secondary information, tertiary information, and primary action before Semi implementation.
 

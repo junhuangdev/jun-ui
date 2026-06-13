@@ -1,6 +1,6 @@
 # Builder Contract
 
-Use this reference when a target project needs a static page, workbench, dashboard, settings screen, or detail page built through the installable jun-ui Skill.
+Use this reference when a target project needs a static page, workbench, dashboard, settings screen, or detail page built through the installable `jun-ui-design-system` Skill.
 
 For server-backed apps, use `/Users/jun/workspace/jun-ui/docs/delivery-lanes.md` first. Runtime apps should reuse the Design System contract, but the target project owns the server runtime and final URL verification.
 
@@ -31,9 +31,9 @@ jun-ui bundle-app <config.json>
 | Concern | Owner |
 | --- | --- |
 | Page intent, source data, output path | target project |
-| Semi Design System selection and page composition | jun-ui Skill |
-| Context7 CLI + Skills grounding through `ctx7` | jun-ui Skill |
-| Figma review or design handoff | jun-ui Skill |
+| Semi Design System selection and page composition | `jun-ui-design-system` Skill |
+| Context7 CLI + Skills grounding through `ctx7` | `jun-ui-design-system` Skill |
+| Figma review or design handoff | `jun-ui-design-system` Skill |
 | Node tooling and build execution | jun-ui Builder |
 | Final file-openable artifact | jun-ui Builder writes it into the target project |
 | Runtime server, data, auth, deployment | target project |

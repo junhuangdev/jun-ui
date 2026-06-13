@@ -42,8 +42,8 @@ Use these sources first:
 1. Inspect current `jun-ui` docs, Skill references, templates, examples, and validation script.
 2. Build a source-backed principle map: information weight, layout region, typography, grouping, action proximity, disclosure, responsive regrouping.
 3. Update `docs/page-information-architecture.md` with stable rules and source links.
-4. Add or update `skills/jun-ui-page-delivery/references/information-architecture.md` as the fast execution checklist.
-5. Wire the reference into `skills/jun-ui-page-delivery/SKILL.md`, `docs/design-system.md`, `docs/problem-and-solution.md`, and delivery docs.
+4. Add or update `skills/jun-ui-design-system/references/information-architecture.md` as the fast execution checklist.
+5. Wire the reference into `skills/jun-ui-design-system/SKILL.md`, `docs/design-system.md`, `docs/problem-and-solution.md`, and delivery docs.
 6. Add validation checks so the new rule remains part of user-facing docs and the Skill.
 7. Improve starter templates only after the rules are documented. Keep template changes focused on first-screen hierarchy, heading outline, and weight-to-region mapping.
 8. Run `npm test`. If generated artifacts are affected, also run the relevant `jun-ui build` or `jun-ui bundle-app` smoke and `jun-ui verify-page --strict`.

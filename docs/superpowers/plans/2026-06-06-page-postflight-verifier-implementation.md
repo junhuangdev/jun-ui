@@ -48,7 +48,7 @@ Require `--jun-ui-` token usage in HTML/CSS and fail strict mode on bare colors 
 
 **Files:**
 - Modify: `README.md`
-- Modify: `skills/jun-ui-page-delivery/SKILL.md`
+- Modify: `skills/jun-ui-design-system/SKILL.md`
 
 - [x] **Step 1: Document the command**
 

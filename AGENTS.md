@@ -1,12 +1,12 @@
 # jun-ui Agent Instructions
 
-This repository is Jun's installable AI page-building Skill, Design System, and Builder. It exists to help AI build high-quality pages inside a target project and produce final artifacts that can be opened directly with `file://`.
+This repository is Jun's installable AI Design System entrypoint, product UI ruleset, and Builder. It exists to help AI enter the right UI workflow inside a target project and produce either file-openable artifacts or verified runtime app surfaces.
 
 ## Scope
 
 - Use these instructions for changes inside `/Users/jun/workspace/jun-ui`.
 - Project-local rules add repository context only. They do not weaken global agent rules.
-- For Jun page work, use the installed `jun-ui-page-delivery` Skill as the execution entrypoint.
+- For Jun page or product UI work, use the installed `jun-ui-design-system` Skill as the execution entrypoint.
 
 ## Current Direction
 
@@ -18,7 +18,7 @@ This repository is Jun's installable AI page-building Skill, Design System, and 
 
 ## Problem And Solution Boundary
 
-- The problem is AI page delivery: speed, quality, consistency, and directly inspectable results.
+- The problem is AI product UI delivery: speed, quality, consistency, and directly inspectable results.
 - The installable Skill, Semi Design System, Context7 CLI + Skills, Figma, and Builder are the selected solution for that problem.
 - Do not reframe the project around implementation purity. The final artifact and review experience matter more than whether source files were compiled.
 
@@ -70,9 +70,9 @@ For generated page templates or Builder changes, also run `jun-ui build` against
 
 ## Skill Packaging
 
-- The bundled Skill lives at `skills/jun-ui-page-delivery/SKILL.md`.
+- The bundled Skill lives at `skills/jun-ui-design-system/SKILL.md`.
 - Keep Skill instructions aligned with `README.md`, `docs/problem-and-solution.md`, `docs/design-system.md`, and `docs/context7.md`.
-- The active local install path is `/Users/jun/.codex/skills/jun-ui-page-delivery`.
+- The active local install path is `/Users/jun/.codex/skills/jun-ui-design-system`.
 - When updating the Skill, verify the installed or symlinked copy points to the intended source.
 
 ## File Naming

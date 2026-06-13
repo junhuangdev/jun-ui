@@ -6,7 +6,7 @@
 
 **Architecture:** Keep the new knowledge in docs and Skill references, then enforce wiring through `scripts/validate.mjs`. Do not create a new component framework; Semi Design System, Context7, Figma, Builder, static artifact, and runtime app lanes remain the delivery foundation.
 
-**Tech Stack:** Markdown docs, `jun-ui-page-delivery` Skill references, Node validation script, `npm test`.
+**Tech Stack:** Markdown docs, `jun-ui-design-system` Skill references, Node validation script, `npm test`.
 
 ---
 
@@ -52,7 +52,7 @@ Add these paths to `requiredFiles`:
 "docs/prompts/2026-06-13-information-hierarchy-long-task.md",
 "docs/superpowers/plans/2026-06-13-information-hierarchy-implementation.md",
 "docs/superpowers/specs/2026-06-13-information-hierarchy-design.md",
-"skills/jun-ui-page-delivery/references/information-architecture.md",
+"skills/jun-ui-design-system/references/information-architecture.md",
 ```
 
 - [ ] **Step 2: Require user-facing terms**
@@ -72,7 +72,7 @@ Add this check:
 
 ```js
 if (!skill.includes("information-architecture.md") || !skill.includes("visual hierarchy")) {
-  errors.push("page delivery skill must require information architecture and visual hierarchy review");
+  errors.push("design system skill must require information architecture and visual hierarchy review");
 }
 ```
 
@@ -128,7 +128,7 @@ secondary information
 ### Task 3: Add Skill Reference
 
 **Files:**
-- Create: `/Users/jun/workspace/jun-ui/skills/jun-ui-page-delivery/references/information-architecture.md`
+- Create: `/Users/jun/workspace/jun-ui/skills/jun-ui-design-system/references/information-architecture.md`
 
 - [ ] **Step 1: Add the pre-composition packet**
 
@@ -153,8 +153,8 @@ Require first-screen clarity, heading outline, value-to-area balance, action pro
 - Modify: `/Users/jun/workspace/jun-ui/README.md`
 - Modify: `/Users/jun/workspace/jun-ui/docs/design-system.md`
 - Modify: `/Users/jun/workspace/jun-ui/docs/problem-and-solution.md`
-- Modify: `/Users/jun/workspace/jun-ui/skills/jun-ui-page-delivery/SKILL.md`
-- Modify: `/Users/jun/workspace/jun-ui/skills/jun-ui-page-delivery/references/delivery-contract.md`
+- Modify: `/Users/jun/workspace/jun-ui/skills/jun-ui-design-system/SKILL.md`
+- Modify: `/Users/jun/workspace/jun-ui/skills/jun-ui-design-system/references/delivery-contract.md`
 
 - [ ] **Step 1: Add docs index link**
 
@@ -190,4 +190,3 @@ Expected: `jun-ui validation passed`.
 - [ ] **Step 2: If validation fails from unrelated branch drift**
 
 Report exact failures and identify whether they are outside the information hierarchy change.
-

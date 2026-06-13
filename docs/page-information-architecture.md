@@ -1,6 +1,6 @@
 # Page Information Architecture And Visual Hierarchy
 
-This document defines how `jun-ui` pages decide what deserves attention before choosing Semi Design System components, Builder output, or runtime layout. It is part of the installable `jun-ui-page-delivery` Skill contract for both `file://` file-openable static artifact work and server-backed runtime app work.
+This document defines how `jun-ui` pages decide what deserves attention before choosing Semi Design System components, Builder output, or runtime layout. It is part of the installable `jun-ui-design-system` Skill contract for both `file://` file-openable static artifact work and server-backed runtime app work.
 
 ## One-Line Rule
 
@@ -99,4 +99,4 @@ Use these checks before delivery:
 
 ## Relationship To Existing Rules
 
-This document sits above `skills/jun-ui-page-delivery/references/affordance-hierarchy.md`. Information architecture decides what matters. Visual hierarchy decides how strongly it appears. Affordance hierarchy decides how interactive controls look. Delivery verification then checks tokens, native controls, asset shape, scroll rules, and file-openable or runtime acceptance.
+This document sits above `skills/jun-ui-design-system/references/affordance-hierarchy.md`. Information architecture decides what matters. Visual hierarchy decides how strongly it appears. Affordance hierarchy decides how interactive controls look. Delivery verification then checks tokens, native controls, asset shape, scroll rules, and file-openable or runtime acceptance.

@@ -1,6 +1,6 @@
 # jun-ui Builder
 
-The jun-ui Builder is the centralized build surface for the static artifact lane of the installable `jun-ui` Skill.
+The jun-ui Builder is the centralized build surface for the static artifact lane of the installable `jun-ui-design-system` Skill.
 
 It lets AI use the jun-ui Design System, Semi Design System, Context7 CLI + Skills, and Figma rules from any target project without making that target project own the frontend toolchain when the requested output can be accepted as a file-openable artifact.
 
@@ -23,15 +23,15 @@ node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs build <config.json>
 | Part | Owner |
 | --- | --- |
 | Node, npm, build tooling | jun-ui Builder |
-| Semi Design System usage | jun-ui Skill, Context7, and Builder profile |
-| Figma design review path | jun-ui Skill |
+| Semi Design System usage | `jun-ui-design-system` Skill, Context7, and Builder profile |
+| Figma design review path | `jun-ui-design-system` Skill |
 | Page intent and source data | target project |
 | Final file-openable artifact | written back to target project |
 | Runtime server behavior | target project, not the Builder |
 
 ## Contract
 
-- Use `jun-ui build` from a target project, global Skill, or project-local Skill install.
+- Use `jun-ui build` from a target project after entering through the global or project-local `jun-ui-design-system` Skill.
 - Keep the target project thin: it provides config, data, and the output location.
 - Produce a final artifact that opens through `file://`.
 - Keep asset paths relative so the output folder is movable.

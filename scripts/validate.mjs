@@ -78,10 +78,10 @@ const requiredFiles = [
   "examples/runtime-app/server.mjs",
   "examples/runtime-app/src/main.jsx",
   "examples/runtime-app/src/styles.css",
-  "skills/jun-ui-page-delivery/SKILL.md",
-  "skills/jun-ui-page-delivery/references/builder-contract.md",
-  "skills/jun-ui-page-delivery/references/delivery-contract.md",
-  "skills/jun-ui-page-delivery/references/information-architecture.md",
+  "skills/jun-ui-design-system/SKILL.md",
+  "skills/jun-ui-design-system/references/builder-contract.md",
+  "skills/jun-ui-design-system/references/delivery-contract.md",
+  "skills/jun-ui-design-system/references/information-architecture.md",
   "templates/workbench/jun-ui.page.json",
   "templates/project-redesigns/five-project-redesign.manifest.json",
   "templates/project-redesigns/bundle-app-redesign-starter/README.md",
@@ -100,6 +100,11 @@ const removedFiles = [
   "docs/static-ui-decision-context.md",
   "docs/superpowers/specs/2026-06-04-jun-ui-design.md",
   "docs/superpowers/plans/2026-06-04-jun-ui-implementation.md",
+  "skills/jun-ui-page-delivery/SKILL.md",
+  "skills/jun-ui-page-delivery/references/affordance-hierarchy.md",
+  "skills/jun-ui-page-delivery/references/builder-contract.md",
+  "skills/jun-ui-page-delivery/references/delivery-contract.md",
+  "skills/jun-ui-page-delivery/references/information-architecture.md",
   "skills/jun-ui-static-pages/SKILL.md",
   "skills/jun-ui-static-pages/references/usage-patterns.md",
 ];
@@ -113,10 +118,10 @@ const userFacingFiles = [
   "docs/design-system.md",
   "docs/page-information-architecture.md",
   "docs/problem-and-solution.md",
-  "skills/jun-ui-page-delivery/SKILL.md",
-  "skills/jun-ui-page-delivery/references/builder-contract.md",
-  "skills/jun-ui-page-delivery/references/delivery-contract.md",
-  "skills/jun-ui-page-delivery/references/information-architecture.md",
+  "skills/jun-ui-design-system/SKILL.md",
+  "skills/jun-ui-design-system/references/builder-contract.md",
+  "skills/jun-ui-design-system/references/delivery-contract.md",
+  "skills/jun-ui-design-system/references/information-architecture.md",
 ];
 
 const requiredTerms = [
@@ -224,6 +229,7 @@ const staleTerms = [
   "no-build",
   "jun-ui.css",
   "jun-ui.js",
+  "jun-ui-page-delivery",
   "jun-ui-static-pages",
   "static-ui-decision-context",
   "when it is available",
@@ -397,7 +403,7 @@ for (const file of removedFiles) {
 }
 
 const packageJson = JSON.parse(await requireFile("package.json"));
-for (const term of ["ai-page-delivery", "semi-design", "context7", "figma", "file-openable", "runtime-app"]) {
+for (const term of ["ai-design-system", "semi-design", "context7", "figma", "file-openable", "runtime-app"]) {
   if (!JSON.stringify(packageJson).includes(term)) {
     errors.push(`package.json missing ${term}`);
   }
@@ -447,24 +453,24 @@ for (const term of requiredCombinedTerms) {
   }
 }
 
-const skill = await requireFile("skills/jun-ui-page-delivery/SKILL.md");
-if (!skill.includes("name: jun-ui-page-delivery")) {
-  errors.push("page delivery skill must use the jun-ui-page-delivery name");
+const skill = await requireFile("skills/jun-ui-design-system/SKILL.md");
+if (!skill.includes("name: jun-ui-design-system")) {
+  errors.push("design system skill must use the jun-ui-design-system name");
 }
 if (!skill.includes("Use when") || !skill.includes("Semi Design System")) {
-  errors.push("page delivery skill description must include concrete Semi page triggers");
+  errors.push("design system skill description must include concrete Semi page triggers");
 }
 if (!skill.includes("jun-ui build")) {
-  errors.push("page delivery skill must route page work through jun-ui build");
+  errors.push("design system skill must route page work through jun-ui build");
 }
 if (!skill.includes("verify-page")) {
-  errors.push("page delivery skill must require verify-page postflight validation");
+  errors.push("design system skill must require verify-page postflight validation");
 }
 if (!skill.includes("Lane Routing") || !skill.includes("runtime app")) {
-  errors.push("page delivery skill must route static artifact and runtime app lanes");
+  errors.push("design system skill must route static artifact and runtime app lanes");
 }
 if (!skill.includes("information-architecture.md") || !skill.includes("visual hierarchy")) {
-  errors.push("page delivery skill must require information architecture and visual hierarchy review");
+  errors.push("design system skill must require information architecture and visual hierarchy review");
 }
 
 const builderScript = await requireFile("scripts/jun-ui.mjs");
@@ -1465,14 +1471,18 @@ try {
 
 const shouldCheckGlobalSkill = homedir() === "/Users/jun" || process.env.JUN_UI_REQUIRE_GLOBAL_SKILL === "1";
 if (shouldCheckGlobalSkill) {
-  const globalSkillPath = "/Users/jun/.codex/skills/jun-ui-page-delivery/SKILL.md";
+  const globalSkillPath = "/Users/jun/.codex/skills/jun-ui-design-system/SKILL.md";
   try {
     const globalSkill = await readFile(globalSkillPath, "utf8");
-    if (!globalSkill.includes("name: jun-ui-page-delivery")) {
-      errors.push("global jun-ui page delivery skill has wrong skill name");
+    if (!globalSkill.includes("name: jun-ui-design-system")) {
+      errors.push("global jun-ui design system skill has wrong skill name");
     }
   } catch {
     errors.push(`missing global skill entrypoint: ${globalSkillPath}`);
+  }
+
+  if (await fileExists("/Users/jun/.codex/skills/jun-ui-page-delivery")) {
+    errors.push("old global jun-ui-page-delivery skill entrypoint still exists");
   }
 
   if (await fileExists("/Users/jun/.codex/skills/jun-ui-static-pages")) {

@@ -1,7 +1,7 @@
 {
   "name": "@junhuangdev/jun-ui",
   "version": "0.1.0",
-  "description": "An installable AI page-building Skill, Design System, Builder, and runtime UI contract for Semi, Context7, Figma, file-openable artifacts, and server-backed app surfaces.",
+  "description": "An installable AI Design System entrypoint, product UI ruleset, Builder, and runtime UI contract for Semi, Context7, Figma, file-openable artifacts, and server-backed app surfaces.",
   "type": "module",
   "private": false,
   "bin": {
@@ -21,9 +21,10 @@
     "test": "node scripts/validate.mjs"
   },
   "keywords": [
-    "ai-page-delivery",
+    "ai-design-system",
     "ai-page-builder",
     "builder",
+    "design-system",
     "installable-skill",
     "semi-design",
     "context7",

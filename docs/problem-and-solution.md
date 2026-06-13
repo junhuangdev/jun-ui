@@ -1,6 +1,6 @@
 # Problem And Solution
 
-This document is the source of truth for the current `jun-ui` direction: an installable AI page-building Skill, Design System, Builder, and runtime UI contract.
+This document is the source of truth for the current `jun-ui` direction: an installable AI Design System entrypoint, product UI ruleset, Builder, and runtime UI contract.
 
 ## Problem
 
@@ -39,7 +39,7 @@ The selected solution is:
 | Figma | Design source, visual review surface, and design-system collaboration bridge. |
 | Builder | Centralized `jun-ui build` command that lets AI use modern UI tooling while still delivering directly openable artifacts. |
 | Runtime UI contract | Rules for using Semi tokens, Semi patterns, `jun-ui` delivery variables, states, and verification discipline inside server-backed apps. |
-| `jun-ui-page-delivery` Skill | Installable entrypoint that tells AI how to choose the correct lane and combine the solution parts inside a target project. |
+| `jun-ui-design-system` Skill | The only installable AI entrypoint into the Jun UI Design System; it chooses the correct lane and combines the solution parts inside a target project. |
 
 ## Why This Works
 
@@ -50,7 +50,7 @@ Semi provides broad page and component coverage. Context7 CLI + Skills reduces w
 This repository should hold:
 
 - the problem and solution definition;
-- Skill instructions for AI page delivery;
+- Skill instructions for Design System-guided AI product UI delivery;
 - information architecture and visual hierarchy rules for high-quality page composition;
 - templates and references for repeated page work;
 - Builder command and build-output requirements;

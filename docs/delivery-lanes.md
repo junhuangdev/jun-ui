@@ -4,7 +4,7 @@
 
 ## Goal
 
-Other projects should keep using `jun-ui` in a simple way. A user can ask an agent to build a page or system, and the globally installed, installable `jun-ui-page-delivery` Skill should choose the right lane unless the request is genuinely ambiguous.
+Other projects should keep using `jun-ui` in a simple way. A user can ask an agent to build a page or system, and the globally installed, installable `jun-ui-design-system` Skill should choose the right lane unless the request is genuinely ambiguous.
 
 ## Lanes
 
@@ -13,7 +13,7 @@ Other projects should keep using `jun-ui` in a simple way. A user can ask an age
 | Static artifact | The page can use build-time data, snapshots, local JSON, reports, or bundled client logic. | `file://` openable HTML plus relative assets. | `jun-ui` Builder writes the artifact. |
 | Runtime app | The UI must read or write server state while the user is using it. | A project-owned app served by localhost or deployment. | Target project owns server, routes, data, auth, and deploy. |
 
-The same Design System applies to both lanes: Semi Design System, Semi `--semi-*` visual tokens, a small `--jun-ui-*` delivery-variable layer, Context7 CLI + Skills for Semi usage, Figma when visual review matters, and the `jun-ui-page-delivery` Skill as the AI entrypoint.
+The same Design System applies to both lanes: Semi Design System, Semi `--semi-*` visual tokens, a small `--jun-ui-*` delivery-variable layer, Context7 CLI + Skills for Semi usage, Figma when visual review matters, and the `jun-ui-design-system` Skill as the AI entrypoint.
 
 ## AI Routing Rule
 
@@ -76,7 +76,7 @@ Future runtime validation should check the same Design System concerns as `verif
 The intended user flow is:
 
 1. The user asks for a static page, dashboard, tool, workbench, or web system.
-2. The global Agent instructions route page work into `jun-ui-page-delivery`.
+2. The global Agent instructions route page work into `jun-ui-design-system`.
 3. The Skill classifies the request as static artifact or runtime app.
 4. The agent proceeds without asking if the lane is clear.
 5. The agent asks only one lane question when the request is ambiguous and the wrong lane would be costly.

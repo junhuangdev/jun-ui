@@ -1,6 +1,6 @@
 # jun-ui
 
-`jun-ui` is Jun's installable AI page-building Skill, Design System, and Builder.
+`jun-ui` is Jun's installable AI Design System entrypoint, product UI ruleset, and Builder.
 
 Its purpose is to let AI enter any target project, use Semi Design System with Context7 CLI + Skills and Figma guidance, and create the right product UI output for the request. Static pages still write back final file-openable artifacts. Server-backed web systems use the same Design System contract inside a target-project-owned runtime app.
 
@@ -10,8 +10,8 @@ Its purpose is to let AI enter any target project, use Semi Design System with C
 
 | Layer | Definition |
 | --- | --- |
-| Problem | AI needs a fast, stable way to create high-quality product UI inside a target project that Jun can directly inspect and use. |
-| Solution | Installable `jun-ui-page-delivery` Skill + Semi Design System + Context7 CLI + Skills + Figma + centralized Builder + runtime UI contract. |
+| Problem | AI needs a fast, stable way to enter Jun's UI system, create high-quality product UI inside a target project, and leave a result Jun can directly inspect and use. |
+| Solution | Installable `jun-ui-design-system` Skill + Semi Design System + Context7 CLI + Skills + Figma + centralized Builder + runtime UI contract. |
 | Acceptance | Static artifacts open through `file://`; runtime apps work through their project-owned server URL. |
 
 This repository is not a hand-built component library. It is the source of truth for the installable Skill, the Design System rules, the Builder command, and the artifact contract that lets AI produce pages in other projects.
@@ -25,7 +25,7 @@ This repository is not a hand-built component library. It is the source of truth
 | Figma | Design intent, review surface, and design-system bridge when visual work needs a shared source. |
 | Builder | Centralized `jun-ui build` command that compiles page intent into directly openable artifacts. |
 | Runtime UI contract | Shared rules for using the same Design System inside target-project-owned web apps. |
-| `jun-ui-page-delivery` Skill | Installable AI entrypoint for choosing static artifact vs runtime app, using Semi correctly, and validating the result. |
+| `jun-ui-design-system` Skill | The only installable AI entrypoint for the Design System: choose static artifact vs runtime app, use Semi correctly, find the right references, and validate the result. |
 
 ## Delivery Lanes
 
@@ -61,16 +61,16 @@ Every generated page must optimize for the final user-visible result:
 The active Skill entrypoint is:
 
 ```text
-skills/jun-ui-page-delivery/SKILL.md
+skills/jun-ui-design-system/SKILL.md
 ```
 
 Local Codex install path:
 
 ```text
-/Users/jun/.codex/skills/jun-ui-page-delivery
+/Users/jun/.codex/skills/jun-ui-design-system
 ```
 
-Use this Skill for Jun page work before choosing templates, package setup, or implementation details.
+Use this Skill as the Jun UI Design System entrypoint before choosing templates, package setup, component usage, or implementation details.
 
 ## Builder
 
@@ -161,9 +161,9 @@ Context7 is not added to browser runtime output or target project dependencies.
 - `docs/page-information-architecture.md`: defines how pages weight primary information, secondary information, typography, layout area, grouping, and first-screen hierarchy.
 - `docs/builder.md`: defines the centralized Builder command and target project boundary.
 - `docs/context7.md`: defines the required `ctx7`, `context7-docs`, and `context7-cli` setup and verification path.
-- `skills/jun-ui-page-delivery/references/delivery-contract.md`: concise Skill reference for artifact requirements.
-- `skills/jun-ui-page-delivery/references/builder-contract.md`: concise Skill reference for `jun-ui build`.
-- `skills/jun-ui-page-delivery/references/information-architecture.md`: concise Skill checklist for information architecture and visual hierarchy before page composition.
+- `skills/jun-ui-design-system/references/delivery-contract.md`: concise Skill reference for artifact requirements.
+- `skills/jun-ui-design-system/references/builder-contract.md`: concise Skill reference for `jun-ui build`.
+- `skills/jun-ui-design-system/references/information-architecture.md`: concise Skill checklist for information architecture and visual hierarchy before page composition.
 
 ## Verification
 

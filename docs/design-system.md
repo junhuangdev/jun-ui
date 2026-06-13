@@ -1,10 +1,10 @@
 # jun-ui Design System
 
-`jun-ui` is an installable AI page-building Skill, Design System, and Builder. It defines how AI should use Semi Design System, Context7 CLI + Skills, Figma, `jun-ui build`, and a runtime UI contract to create product UI Jun can inspect directly inside any target project.
+`jun-ui` is an installable AI Design System entrypoint, product UI ruleset, and Builder. It defines how AI should enter the Jun UI workflow, use Semi Design System, Context7 CLI + Skills, Figma, `jun-ui build`, and a runtime UI contract to create product UI Jun can inspect directly inside any target project.
 
 ## One-Line Definition
 
-Use the installable Skill to choose the right delivery lane, apply Semi Design System with Context7 CLI + Skills and Figma when needed, and produce either a high-quality `file://` artifact or a server-backed runtime app UI.
+Use the installable `jun-ui-design-system` Skill as the Design System entrypoint: choose the right delivery lane, apply Semi Design System with Context7 CLI + Skills and Figma when needed, and produce either a high-quality `file://` artifact or a server-backed runtime app UI.
 
 ## Design Goal
 
@@ -23,7 +23,7 @@ The goal is not to preserve a specific implementation process. The goal is to ma
 
 ```mermaid
 flowchart LR
-  A["Page request"] --> B["jun-ui-page-delivery Skill"]
+  A["Page request"] --> B["jun-ui-design-system Skill"]
   B --> C["Target project page intent"]
   C --> D["Figma when visual source or review is needed"]
   C --> E["Context7 CLI + Skills Semi API check"]
@@ -45,7 +45,7 @@ flowchart LR
 | Figma | Visual source, review surface, and design-system bridge when a page needs shared design intent. |
 | Builder | Converts page intent into Vite-bundled Semi artifacts with classic IIFE JavaScript, CSS, relative assets, and static fallback. |
 | Runtime UI contract | Applies the same Design System to target-project-owned server-backed apps. |
-| Skill | Installable entrypoint that makes AI choose the right path, use the selected tools correctly, and verify the result. |
+| Skill | The only installable AI entrypoint into the Design System; it chooses the right path, routes to the selected tools, and verifies the result. |
 | Validation | Prevents stale instructions and checks the current delivery contract remains explicit. |
 
 ## Page Types
@@ -134,7 +134,7 @@ A runtime app surface is acceptable only when:
 
 Default to Semi Design System for UI implementation. Use Context7 CLI + Skills before writing or changing substantial Semi code. MCP is optional. Stop before Semi implementation if no approved Context7 path is available. Use Figma when visual intent is part of the task. Allow compilation whenever it improves speed, quality, or component coverage, as long as the built result satisfies the delivery contract.
 
-Use the Builder as the default execution surface for static artifacts. A target project should provide page intent, data, and output path; `jun-ui` should provide the installable Skill, Builder, Design System rules, and artifact verification. The Builder may use React, Vite, and Semi internally, but target projects should receive only the built `file://` artifact folder unless the user explicitly chooses a project-owned build setup or the request requires the runtime app lane.
+Use the Builder as the default execution surface for static artifacts. A target project should provide page intent, data, and output path; `jun-ui` should provide the `jun-ui-design-system` Skill, Builder, Design System rules, and artifact verification. The Builder may use React, Vite, and Semi internally, but target projects should receive only the built `file://` artifact folder unless the user explicitly chooses a project-owned build setup or the request requires the runtime app lane.
 
 Use the target project's existing app stack for runtime apps. `jun-ui` should not take over server ownership; it should make the UI look and behave like part of the same Design System.
 
@@ -150,7 +150,7 @@ A page must use one consistent visual language for "what is clickable." Each int
 | Openable object (cards, rows) | card/row with hover state | not button-shaped |
 | Passive status (counts, labels) | `Tag` / small muted text | must not look clickable |
 
-Express semantic states (warn/success/danger/lock) through Semi props or Semi semantic tokens, not bare CSS colors. `jun-ui` delivery variables do not define visual state semantics. The actionable contract, anti-patterns, and a pre-delivery checklist live in `skills/jun-ui-page-delivery/references/affordance-hierarchy.md`.
+Express semantic states (warn/success/danger/lock) through Semi props or Semi semantic tokens, not bare CSS colors. `jun-ui` delivery variables do not define visual state semantics. The actionable contract, anti-patterns, and a pre-delivery checklist live in `skills/jun-ui-design-system/references/affordance-hierarchy.md`.
 
 ## Non-Goals
 

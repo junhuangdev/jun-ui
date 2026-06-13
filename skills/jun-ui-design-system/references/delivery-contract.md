@@ -1,6 +1,6 @@
 # Delivery Contract
 
-Use this reference when creating or reviewing Jun page artifacts through the installable jun-ui Skill and Builder.
+Use this reference when creating or reviewing Jun page artifacts through the installable `jun-ui-design-system` Skill and Builder.
 
 For lane selection, read `/Users/jun/workspace/jun-ui/docs/delivery-lanes.md` first. This file defines the static artifact contract. Runtime apps use the same Design System, but the target project owns server behavior and runtime verification.
 

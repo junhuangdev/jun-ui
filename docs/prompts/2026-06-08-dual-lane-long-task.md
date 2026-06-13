@@ -6,12 +6,12 @@ Use this prompt to start the implementation task after the design docs are in pl
 We are in /Users/jun/workspace/jun-ui.
 
 Goal:
-Upgrade jun-ui from a file-openable page delivery system into a dual-lane Design System delivery system that remains simple for other projects to use through the globally installed Agent/Skill.
+Upgrade jun-ui from a file-openable artifact workflow into a dual-lane Design System delivery system that remains simple for other projects to use through the globally installed Agent/Skill.
 
 Context:
 - Current static artifact behavior must continue to work.
 - The existing token console must remain available and file-openable.
-- Other projects should keep a foolproof usage model: users ask for a page or web system, and the global jun-ui-page-delivery Skill chooses the right lane.
+- Other projects should keep a foolproof usage model: users ask for a page or web system, and the global jun-ui-design-system Skill chooses the right lane.
 - Static pages, dashboards, workbenches, reports, and snapshot-backed tools should use the static artifact lane.
 - Server-backed systems with runtime API reads/writes, auth, sessions, uploads, mutations, jobs, or shared state should use the runtime app lane.
 - jun-ui should not become a full-stack framework. Target projects own server, database, auth, routes, deployment, and business state.
@@ -21,9 +21,9 @@ Read first:
 - /Users/jun/workspace/jun-ui/README.md
 - /Users/jun/workspace/jun-ui/docs/design-system.md
 - /Users/jun/workspace/jun-ui/docs/builder.md
-- /Users/jun/workspace/jun-ui/skills/jun-ui-page-delivery/SKILL.md
-- /Users/jun/workspace/jun-ui/skills/jun-ui-page-delivery/references/delivery-contract.md
-- /Users/jun/workspace/jun-ui/skills/jun-ui-page-delivery/references/builder-contract.md
+- /Users/jun/workspace/jun-ui/skills/jun-ui-design-system/SKILL.md
+- /Users/jun/workspace/jun-ui/skills/jun-ui-design-system/references/delivery-contract.md
+- /Users/jun/workspace/jun-ui/skills/jun-ui-design-system/references/builder-contract.md
 
 Milestones:
 1. Align docs and Skill text around two lanes: static artifact and runtime app.

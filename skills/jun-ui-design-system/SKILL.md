@@ -1,13 +1,13 @@
 ---
-name: jun-ui-page-delivery
-description: Use when creating, editing, reviewing, or recommending Jun product pages, workbenches, dashboards, settings screens, detail pages, local tools, AI-generated page prototypes, or server-backed web app surfaces inside a target project that should use Semi Design System, Context7 CLI + Skills, Figma, the installable jun-ui Builder, and the jun-ui Design System delivery lanes.
+name: jun-ui-design-system
+description: Use when creating, editing, reviewing, or recommending product pages, workbenches, dashboards, settings screens, detail pages, local tools, AI-generated page prototypes, or server-backed web app surfaces that should enter the Jun UI Design System through Semi Design System, Context7 CLI + Skills, Figma, the installable jun-ui Builder, and the jun-ui static artifact/runtime app delivery lanes.
 ---
 
-# jun-ui Page Delivery
+# jun-ui Design System
 
 ## Core Rule
 
-Optimize for the final user-visible product UI. Use the installable jun-ui Skill, Semi Design System, Context7 CLI + Skills, and Figma to choose the right delivery lane:
+Treat this Skill as the single AI entrypoint into the Jun UI Design System. Optimize for the final user-visible product UI, then use Semi Design System, Context7 CLI + Skills, Figma, the jun-ui Builder, and the Design System references to choose the right delivery lane:
 
 - static artifact lane for pages Jun can open directly with `file://`;
 - runtime app lane for UI that must read or write server state while the user is using it.
