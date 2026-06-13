@@ -207,6 +207,35 @@ function renderSystemTokenCss({ deliveryRegistry, semiTokens }) {
 ${renderDeliveryTokenCssVariables(deliveryRegistry)}`;
 }
 
+// Compatibility only for existing bundle-app targets that still reference the
+// pre-Semi-surface visual variables. Do not expose these in the token console
+// or Skill guidance; new page source should use Semi --semi-* tokens directly.
+function renderBundleLegacyCompatibilityCss() {
+  return `:root {
+  --jun-ui-bg: var(--semi-color-bg-0);
+  --jun-ui-panel: var(--semi-color-bg-1);
+  --jun-ui-ink: var(--semi-color-text-0);
+  --jun-ui-muted: var(--semi-color-text-2);
+  --jun-ui-line: var(--semi-color-border);
+  --jun-ui-accent: var(--semi-color-primary);
+  --jun-ui-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --jun-ui-font-size-body: 14px;
+  --jun-ui-font-size-kicker: 13px;
+  --jun-ui-font-size-h1: 28px;
+  --jun-ui-font-size-h1-mobile: 24px;
+  --jun-ui-font-size-h2: 18px;
+  --jun-ui-font-size-metric: 24px;
+  --jun-ui-line-height-body: 1.5;
+  --jun-ui-line-height-heading: 1.18;
+  --jun-ui-line-height-compact: 1.25;
+  --jun-ui-micro-gap: 4px;
+  --jun-ui-item-gap: 8px;
+  --jun-ui-radius: var(--semi-border-radius-medium);
+  --jun-ui-border: 1px solid var(--semi-color-border);
+  --jun-ui-shadow: 0 12px 32px var(--semi-color-shadow);
+}`;
+}
+
 // Token-driven layout primitives, injected into every artifact alongside the
 // tokens. Pages compose vertical/horizontal rhythm from these instead of
 // hand-rolling flex + gap, so spacing/alignment stay consistent by construction
@@ -526,7 +555,13 @@ function renderBundledAppHtml(config, sourceHtml, { jsFiles, cssFiles, dataScrip
 async function ensureBundleTokenCss({ tempOutDir, cssFiles, assetsDir }) {
   const deliveryRegistry = await loadTokenRegistry();
   const semiTokens = await loadSemiTokenEntries();
-  const tokenCss = `${renderSystemTokenCss({ deliveryRegistry, semiTokens })}\n\n${renderLayoutUtilities()}\n\n`;
+  const tokenCss = `${renderSystemTokenCss({ deliveryRegistry, semiTokens })}
+
+${renderBundleLegacyCompatibilityCss()}
+
+${renderLayoutUtilities()}
+
+`;
   if (cssFiles.length > 0) {
     const firstCssPath = path.join(tempOutDir, cssFiles[0]);
     const existingCss = await readFile(firstCssPath, "utf8");

@@ -1170,7 +1170,7 @@ try {
   );
   await writeFile(
     path.join(bundleSourceDir, "app", "styles.css"),
-    ".bundle-output { color: var(--semi-color-primary); background: var(--semi-color-bg-0); border-color: var(--semi-color-border); }\n",
+    ".bundle-output { color: var(--jun-ui-accent); background: var(--jun-ui-bg); border-color: var(--jun-ui-line); box-shadow: var(--jun-ui-shadow); font-size: var(--jun-ui-font-size-body); line-height: var(--jun-ui-line-height-body); }\n",
     "utf8",
   );
   await writeFile(
@@ -1244,6 +1244,33 @@ try {
   for (const expected of ["--semi-color-bg-0", "--semi-color-primary", "--semi-color-border"]) {
     if (!new RegExp(`${expected}:`).test(combinedBundleCss)) {
       errors.push(`bundle-app smoke CSS missing injected Semi token definition ${expected}`);
+    }
+  }
+  for (const expected of [
+    "--jun-ui-bg",
+    "--jun-ui-panel",
+    "--jun-ui-ink",
+    "--jun-ui-muted",
+    "--jun-ui-line",
+    "--jun-ui-accent",
+    "--jun-ui-border",
+    "--jun-ui-radius",
+    "--jun-ui-shadow",
+    "--jun-ui-font-sans",
+    "--jun-ui-font-size-body",
+    "--jun-ui-font-size-kicker",
+    "--jun-ui-font-size-h1",
+    "--jun-ui-font-size-h1-mobile",
+    "--jun-ui-font-size-h2",
+    "--jun-ui-font-size-metric",
+    "--jun-ui-line-height-body",
+    "--jun-ui-line-height-heading",
+    "--jun-ui-line-height-compact",
+    "--jun-ui-micro-gap",
+    "--jun-ui-item-gap",
+  ]) {
+    if (!new RegExp(`${expected}:`).test(combinedBundleCss)) {
+      errors.push(`bundle-app smoke CSS missing legacy compatibility alias ${expected}`);
     }
   }
   const { stdout: verifyBundleStdout } = await execFileAsync(process.execPath, [
