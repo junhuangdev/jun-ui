@@ -64,8 +64,12 @@ const requiredFiles = [
   "docs/context7.md",
   "docs/delivery-lanes.md",
   "docs/design-system.md",
+  "docs/page-information-architecture.md",
   "docs/problem-and-solution.md",
   "docs/prompts/2026-06-08-dual-lane-long-task.md",
+  "docs/prompts/2026-06-13-information-hierarchy-long-task.md",
+  "docs/superpowers/plans/2026-06-13-information-hierarchy-implementation.md",
+  "docs/superpowers/specs/2026-06-13-information-hierarchy-design.md",
   "scripts/jun-ui.mjs",
   "examples/static-artifact/README.md",
   "examples/static-artifact/jun-ui.page.json",
@@ -77,6 +81,7 @@ const requiredFiles = [
   "skills/jun-ui-page-delivery/SKILL.md",
   "skills/jun-ui-page-delivery/references/builder-contract.md",
   "skills/jun-ui-page-delivery/references/delivery-contract.md",
+  "skills/jun-ui-page-delivery/references/information-architecture.md",
   "templates/workbench/jun-ui.page.json",
   "templates/project-redesigns/five-project-redesign.manifest.json",
   "templates/project-redesigns/bundle-app-redesign-starter/README.md",
@@ -106,10 +111,12 @@ const userFacingFiles = [
   "docs/context7.md",
   "docs/delivery-lanes.md",
   "docs/design-system.md",
+  "docs/page-information-architecture.md",
   "docs/problem-and-solution.md",
   "skills/jun-ui-page-delivery/SKILL.md",
   "skills/jun-ui-page-delivery/references/builder-contract.md",
   "skills/jun-ui-page-delivery/references/delivery-contract.md",
+  "skills/jun-ui-page-delivery/references/information-architecture.md",
 ];
 
 const requiredTerms = [
@@ -141,19 +148,49 @@ const requiredCombinedTerms = [
   "runtime app",
   "delivery lanes",
   "server-backed",
+  "information architecture",
+  "visual hierarchy",
+  "primary information",
+  "secondary information",
+  "Semi `--semi-*`",
+  "`--jun-ui-*` delivery-variable",
 ];
 
-const requiredTokenGroups = ["color", "type", "spacing", "radius", "border", "shadow"];
+const requiredTokenGroups = ["delivery"];
 
 const requiredBuilderTokens = [
-  "--jun-ui-bg",
-  "--jun-ui-panel",
-  "--jun-ui-ink",
-  "--jun-ui-muted",
-  "--jun-ui-line",
-  "--jun-ui-accent",
-  "--jun-ui-radius",
-  "--jun-ui-shadow",
+  "--jun-ui-page-max-width",
+  "--jun-ui-page-padding-block",
+  "--jun-ui-page-padding-inline",
+  "--jun-ui-page-padding-bottom",
+  "--jun-ui-page-padding-mobile-block",
+  "--jun-ui-page-padding-mobile-inline",
+  "--jun-ui-page-padding-mobile-bottom",
+  "--jun-ui-header-gap",
+  "--jun-ui-header-padding",
+  "--jun-ui-inline-gap",
+  "--jun-ui-grid-gap",
+  "--jun-ui-section-gap",
+  "--jun-ui-stack-gap",
+  "--jun-ui-action-gap",
+  "--jun-ui-field-padding-block",
+  "--jun-ui-field-padding-inline",
+  "--jun-ui-list-indent",
+  "--jun-ui-action-border-width",
+];
+
+const requiredSemiTokenMentions = [
+  "--semi-color-bg-0",
+  "--semi-color-bg-1",
+  "--semi-color-text-0",
+  "--semi-color-text-2",
+  "--semi-color-border",
+  "--semi-color-primary",
+  "--semi-color-success",
+  "--semi-color-warning",
+  "--semi-color-danger",
+  "--semi-color-data-0",
+  "--semi-border-radius-medium",
 ];
 
 const projectRedesignStarterDir = path.join(root, "templates/project-redesigns/bundle-app-redesign-starter");
@@ -192,6 +229,15 @@ const staleTerms = [
   "working examples",
   "minimal file-openable renderer",
   "smoke renderer",
+  "Semi theme bridge",
+  "--jun-ui-bg",
+  "--jun-ui-panel",
+  "--jun-ui-ink",
+  "--jun-ui-muted",
+  "--jun-ui-line",
+  "--jun-ui-accent",
+  "--jun-ui-radius",
+  "--jun-ui-shadow",
 ];
 
 const errors = [];
@@ -223,6 +269,7 @@ function removeAllowedCustomPropertyColorDefinitions(line, { allowTokenDefinitio
   if (!allowTokenDefinitions && !allowReferenceDefinitions) return line;
   const prefixes = [];
   if (allowTokenDefinitions) prefixes.push("--jun-ui-");
+  if (allowTokenDefinitions) prefixes.push("--semi-");
   if (allowReferenceDefinitions) prefixes.push("--ref-");
   const prefixPattern = `(?:${prefixes.map((prefix) => prefix.replaceAll("-", "\\-")).join("|")})`;
   return line.replace(new RegExp(`${prefixPattern}[\\w-]*\\s*:[^;}]*(?:;|$|(?=}))`, "gi"), "");
@@ -230,6 +277,11 @@ function removeAllowedCustomPropertyColorDefinitions(line, { allowTokenDefinitio
 
 function stripCssPropertyNames(line) {
   return line.replace(/(^|[;{])\s*(?:--)?[a-zA-Z_-][\w-]*\s*:/g, "$1");
+}
+
+function isTransparentHexColor(value) {
+  const hex = value.toLowerCase();
+  return hex === "#0000" || hex === "#00000000";
 }
 
 function findBareColorViolations(body, fileLabel, options = {}) {
@@ -259,11 +311,13 @@ function findBareColorViolations(body, fileLabel, options = {}) {
     for (const pattern of patterns) {
       pattern.regex.lastIndex = 0;
       const searchLine = pattern.label === "named" ? stripCssPropertyNames(line) : line;
-      const match = pattern.regex.exec(searchLine);
-      if (match) {
+      let match;
+      while ((match = pattern.regex.exec(searchLine)) !== null) {
+        if (pattern.label === "hex" && isTransparentHexColor(match[0])) continue;
         violations.push(`bare color ${match[0]} in ${fileLabel}:${index + 1}`);
         break;
       }
+      if (violations.at(-1)?.endsWith(`${fileLabel}:${index + 1}`)) break;
     }
   }
   return violations;
@@ -370,10 +424,13 @@ if (!skill.includes("verify-page")) {
 if (!skill.includes("Lane Routing") || !skill.includes("runtime app")) {
   errors.push("page delivery skill must route static artifact and runtime app lanes");
 }
+if (!skill.includes("information-architecture.md") || !skill.includes("visual hierarchy")) {
+  errors.push("page delivery skill must require information architecture and visual hierarchy review");
+}
 
 const builderScript = await requireFile("scripts/jun-ui.mjs");
 if (!builderScript.includes("ensureBundleTokenCss")) {
-  errors.push("builder script must inject jun-ui token CSS into bundle-app artifacts");
+  errors.push("builder script must inject Semi token CSS into bundle-app artifacts");
 }
 if (!builderScript.includes("alias: dependencyAliases()")) {
   errors.push("bundle-app must resolve React and Semi from the centralized Builder dependencies");
@@ -493,22 +550,11 @@ for (const group of requiredTokenGroups) {
 }
 for (const tokenName of requiredBuilderTokens) {
   if (!tokenNames.has(tokenName)) {
-    errors.push(`token registry missing required Builder token ${tokenName}`);
+    errors.push(`delivery token registry missing required Builder token ${tokenName}`);
   }
 }
-const requiredPolarisBaselineTokens = new Map([
-  ["--jun-ui-bg", "#F6F6F7"],
-  ["--jun-ui-panel", "#FFFFFF"],
-  ["--jun-ui-ink", "#202223"],
-  ["--jun-ui-muted", "#6D7175"],
-  ["--jun-ui-line", "#D2D5D8"],
-  ["--jun-ui-accent", "#2C6ECB"],
-]);
-for (const [tokenName, expectedValue] of requiredPolarisBaselineTokens) {
-  const token = tokenEntries.find((entry) => entry.name === tokenName);
-  if (token?.value !== expectedValue) {
-    errors.push(`token registry ${tokenName} must use Polaris-like baseline ${expectedValue}`);
-  }
+if (tokenEntries.some((token) => token.name?.startsWith("--jun-ui-") && token.group !== "delivery")) {
+  errors.push("token registry must keep --jun-ui-* variables limited to delivery tokens");
 }
 
 let tokenSmokeDir;
@@ -545,26 +591,16 @@ try {
     errors.push("token console smoke output must not include absolute asset paths");
   }
   for (const expected of [
-    "--jun-ui-bg",
-    "--jun-ui-accent",
-    "Token 控制台",
+    ...requiredSemiTokenMentions,
+    "--jun-ui-page-max-width",
+    "Semi Token 控制台",
     "AI 复制块",
     "模式预览",
     "筛选",
-    "参考风格对比",
-    "应用场景对比",
-    "同一页面真实片段",
-    "侧边导航",
-    "任务表格",
-    "状态标签",
-    "筛选表单",
-    "趋势图表",
-    "推荐基准",
-    "当前默认 token 已采用 Polaris-like",
-    "Polaris-like",
-    "Primer-like",
-    "Spectrum-like",
-    "Atlassian-like",
+    "Semi Design System",
+    "全量 Semi token 面",
+    "jun-ui 交付变量",
+    "Context7",
   ]) {
     if (!tokenHtml.includes(expected)) {
       errors.push(`token console smoke output missing ${expected}`);
@@ -579,6 +615,15 @@ try {
   }
   if (!stdout.includes("Generated token console")) {
     errors.push("token console command must report a generated artifact");
+  }
+  const { stdout: verifyTokenStdout } = await execFileAsync(process.execPath, [
+    path.join(root, "scripts/jun-ui.mjs"),
+    "verify-page",
+    tokenSmokeDir,
+    "--strict",
+  ]);
+  if (!verifyTokenStdout.includes("jun-ui page verification passed")) {
+    errors.push("token console smoke output must pass verify-page strict postflight");
   }
 } catch (error) {
   errors.push(`token console smoke failed: ${error.message}`);
@@ -608,8 +653,8 @@ try {
   await writeFile(path.join(goodDir, "index.html"), goodHtml, "utf8");
   await writeFile(
     path.join(goodDir, "assets", "index.css"),
-    `:root { --jun-ui-bg: #F6F6F7; --jun-ui-accent: #2C6ECB; --jun-ui-line: #D2D5D8; }
-.panel { color: var(--jun-ui-accent); border-color: var(--jun-ui-line); white-space: nowrap; }`,
+    `:root { --semi-color-bg-0: #F6F6F7; --semi-color-primary: #2C6ECB; --semi-color-border: #D2D5D8; }
+.panel { color: var(--semi-color-primary); border-color: var(--semi-color-border); background-color: #0000; white-space: nowrap; }`,
     "utf8",
   );
   await writeFile(path.join(goodDir, "assets", "index.js"), "window.__junUiVerifyGood = true;", "utf8");
@@ -689,9 +734,9 @@ try {
     await writeFile(
       path.join(sourceDir, "styles.css"),
       [
-        ":root { --contract-bg: var(--jun-ui-bg); }",
+        ":root { --contract-bg: var(--semi-color-bg-0); }",
         "button, input, textarea, select { appearance: none; }",
-        ".jui-button { color: var(--jun-ui-accent); background: var(--jun-ui-panel); border-color: var(--jun-ui-line); }",
+        ".jui-button { color: var(--semi-color-primary); background: var(--semi-color-bg-1); border-color: var(--semi-color-border); }",
         ...(withAdvisories
           ? [
               ".clip-region { max-height: 120px; overflow: hidden; }",
@@ -728,9 +773,9 @@ try {
     await writeFile(
       path.join(artifactDir, "assets", "index.css"),
       [
-        ":root { --jun-ui-bg: #F6F6F7; --jun-ui-panel: #FFFFFF; --jun-ui-accent: #2C6ECB; --jun-ui-line: #D2D5D8; }",
+        ":root { --semi-color-bg-0: #F6F6F7; --semi-color-bg-1: #FFFFFF; --semi-color-primary: #2C6ECB; --semi-color-border: #D2D5D8; }",
         "button, input, textarea, select { appearance: none; }",
-        ".jui-button { color: var(--jun-ui-accent); background: var(--jun-ui-panel); border-color: var(--jun-ui-line); }",
+        ".jui-button { color: var(--semi-color-primary); background: var(--semi-color-bg-1); border-color: var(--semi-color-border); }",
       ].join("\n"),
       "utf8",
     );
@@ -826,7 +871,7 @@ try {
   await writeFile(
     path.join(artifactOnlyProject, "dist", "assets", "index.css"),
     [
-      ":root { --jun-ui-bg: #F6F6F7; --jun-ui-panel: #FFFFFF; --jun-ui-accent: #2C6ECB; --jun-ui-line: #D2D5D8; }",
+      ":root { --semi-color-bg-0: #F6F6F7; --semi-color-bg-1: #FFFFFF; --semi-color-primary: #2C6ECB; --semi-color-border: #D2D5D8; }",
       "button, input, textarea, select { appearance: none; }",
     ].join("\n"),
     "utf8",
@@ -926,6 +971,15 @@ try {
   ]);
   if (!verifyBuilderStdout.includes("jun-ui page verification passed")) {
     errors.push("builder smoke output must pass verify-page strict postflight");
+  }
+  const { stdout: verifyBuilderArtifactStdout } = await execFileAsync(process.execPath, [
+    path.join(root, "scripts/jun-ui.mjs"),
+    "verify-page",
+    builderSmokeDir,
+    "--strict",
+  ]);
+  if (!verifyBuilderArtifactStdout.includes("jun-ui page verification passed")) {
+    errors.push("builder smoke artifact directory must pass verify-page strict postflight");
   }
 } catch (error) {
   errors.push(`builder smoke failed: ${error.message}`);
@@ -1116,7 +1170,7 @@ try {
   );
   await writeFile(
     path.join(bundleSourceDir, "app", "styles.css"),
-    ".bundle-output { color: var(--jun-ui-accent); background: var(--jun-ui-bg); border-color: var(--jun-ui-line); }\n",
+    ".bundle-output { color: var(--semi-color-primary); background: var(--semi-color-bg-0); border-color: var(--semi-color-border); }\n",
     "utf8",
   );
   await writeFile(
@@ -1187,9 +1241,9 @@ try {
     bundleCssBodies.push(await readFile(path.join(bundleOutDir, "workbench-assets", asset), "utf8"));
   }
   const combinedBundleCss = bundleCssBodies.join("\n");
-  for (const expected of ["--jun-ui-bg", "--jun-ui-accent", "--jun-ui-line"]) {
+  for (const expected of ["--semi-color-bg-0", "--semi-color-primary", "--semi-color-border"]) {
     if (!new RegExp(`${expected}:`).test(combinedBundleCss)) {
-      errors.push(`bundle-app smoke CSS missing injected token definition ${expected}`);
+      errors.push(`bundle-app smoke CSS missing injected Semi token definition ${expected}`);
     }
   }
   const { stdout: verifyBundleStdout } = await execFileAsync(process.execPath, [
@@ -1256,8 +1310,8 @@ try {
     for (const asset of outputAssets.filter((asset) => asset.endsWith(".css"))) {
       cssBodies.push(await readFile(path.join(outDir, assetsDir, asset), "utf8"));
     }
-    if (!/--jun-ui-bg:/.test(cssBodies.join("\n"))) {
-      errors.push(`project redesign starter ${configName} CSS must include injected jun-ui tokens`);
+    if (!/--semi-color-bg-0:/.test(cssBodies.join("\n"))) {
+      errors.push(`project redesign starter ${configName} CSS must include injected Semi tokens`);
     }
     const { stdout: verifyRedesignStdout } = await execFileAsync(process.execPath, [
       path.join(root, "scripts/jun-ui.mjs"),
@@ -1332,8 +1386,8 @@ try {
 
   const tokenResponse = await fetch(`${url}/jun-ui-tokens.css`);
   const tokenCss = await tokenResponse.text();
-  if (!tokenResponse.ok || !tokenCss.includes("--jun-ui-bg:") || !tokenCss.includes("--jun-ui-accent:")) {
-    errors.push("runtime app example must serve shared jun-ui token CSS");
+  if (!tokenResponse.ok || !tokenCss.includes("--semi-color-bg-0:") || !tokenCss.includes("--semi-color-primary:")) {
+    errors.push("runtime app example must serve shared Semi token CSS");
   }
 
   const stateResponse = await fetch(`${url}/api/state`);

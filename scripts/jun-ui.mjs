@@ -112,66 +112,99 @@ function resolveAssetsDir(config) {
 }
 
 const tokenRegistryPath = path.join(repoRoot, "tokens", "jun-ui.tokens.json");
+const semiCssPath = path.join(repoRoot, "node_modules", "@douyinfe", "semi-ui", "dist", "css", "semi.min.css");
 
 async function loadTokenRegistry() {
   const registry = await readJson(tokenRegistryPath);
   if (!Array.isArray(registry.tokens)) {
-    throw new Error(`Token registry ${tokenRegistryPath} must include a tokens array`);
+    throw new Error(`Delivery token registry ${tokenRegistryPath} must include a tokens array`);
   }
   return registry;
 }
 
-function renderTokenCssVariables(registry) {
-  const declarations = registry.tokens.map((token) => `  ${token.name}: ${token.value};`).join("\n");
+async function loadSemiTokenEntries() {
+  const css = await readFile(semiCssPath, "utf8");
+  const entries = [];
+  const seen = new Set();
+  const tokenPattern = /(--semi-[\w-]+)\s*:\s*([^;}]+)/g;
+  let match;
+  while ((match = tokenPattern.exec(css)) !== null) {
+    const name = match[1];
+    if (seen.has(name)) continue;
+    seen.add(name);
+    const value = match[2].trim();
+    entries.push({
+      name,
+      value,
+      group: semiTokenGroup(name),
+      role: semiTokenRole(name),
+      usage: semiTokenUsage(name),
+    });
+  }
+  return entries.sort((left, right) => left.name.localeCompare(right.name));
+}
+
+function semiTokenGroup(name) {
+  if (name.startsWith("--semi-color-data-")) return "semi-data-color";
+  if (name.startsWith("--semi-color-")) return "semi-semantic-color";
+  if (name.startsWith("--semi-border-radius-")) return "semi-radius";
+  if (name.startsWith("--semi-ai-") || name.startsWith("--semi-color-ai-")) return "semi-ai";
+  if (/^--semi-(?:amber|blue|cyan|green|grey|indigo|light-blue|light-green|lime|orange|pink|purple|red|teal|violet|yellow)-/.test(name)) {
+    return "semi-palette";
+  }
+  return "semi-core";
+}
+
+function semiTokenRole(name) {
+  if (name.startsWith("--semi-color-text-")) return "Semi 文本层级";
+  if (name.startsWith("--semi-color-bg-")) return "Semi 背景层级";
+  if (name.startsWith("--semi-color-fill-")) return "Semi 填充层级";
+  if (name.startsWith("--semi-color-border")) return "Semi 边框";
+  if (name.startsWith("--semi-color-data-")) return "Semi 数据可视化色";
+  if (name.startsWith("--semi-color-success")) return "Semi 成功状态";
+  if (name.startsWith("--semi-color-warning")) return "Semi 警告状态";
+  if (name.startsWith("--semi-color-danger")) return "Semi 危险状态";
+  if (name.startsWith("--semi-color-primary")) return "Semi 主操作色";
+  if (name.startsWith("--semi-border-radius-")) return "Semi 圆角阶梯";
+  if (name.startsWith("--semi-ai-") || name.startsWith("--semi-color-ai-")) return "Semi AI 视觉 token";
+  if (/^--semi-(?:amber|blue|cyan|green|grey|indigo|light-blue|light-green|lime|orange|pink|purple|red|teal|violet|yellow)-/.test(name)) {
+    return "Semi 基础色阶";
+  }
+  return "Semi 系统 token";
+}
+
+function semiTokenUsage(name) {
+  if (name.startsWith("--semi-color-text-")) return "直接按 Semi 文档用于标题、正文、辅助文字和禁用文字。";
+  if (name.startsWith("--semi-color-bg-")) return "直接按 Semi 文档用于页面、面板、浮层和局部表面。";
+  if (name.startsWith("--semi-color-fill-")) return "直接按 Semi 文档用于 hover、active、浅色控件和弱强调背景。";
+  if (name.startsWith("--semi-color-data-")) return "用于图表、趋势、分组统计和可视化序列。";
+  if (name.startsWith("--semi-color-success")) return "用于成功、完成、通过、已保存等状态。";
+  if (name.startsWith("--semi-color-warning")) return "用于警告、待复查、风险提示和非阻断异常。";
+  if (name.startsWith("--semi-color-danger")) return "用于错误、删除、失败和阻断异常。";
+  if (name.startsWith("--semi-color-primary")) return "用于主操作、当前选中、链接焦点和核心交互。";
+  if (name.startsWith("--semi-border-radius-")) return "用于 Semi 组件和自定义表面的圆角，不再通过 jun-ui token 转译。";
+  return "直接使用 Semi Design System 的官方 token；需要语义时优先查 Context7/Semi 文档。";
+}
+
+function renderCssVariables(tokens) {
+  const declarations = tokens.map((token) => `  ${token.name}: ${token.value};`).join("\n");
   return `:root {
   color-scheme: light;
 ${declarations}
 }`;
 }
 
-function hexToRgbTriple(value) {
-  const hex = String(value).trim().replace(/^#/, "");
-  const full = hex.length === 3 ? hex.split("").map((channel) => channel + channel).join("") : hex.slice(0, 6);
-  if (!/^[0-9a-fA-F]{6}$/.test(full)) return null;
-  const int = parseInt(full, 16);
-  return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
-}
-
-function darkenTriple({ r, g, b }, amount) {
-  const f = (channel) => Math.max(0, Math.min(255, Math.round(channel * (1 - amount))));
-  return `${f(r)}, ${f(g)}, ${f(b)}`;
-}
-
-// Theme Semi Design System with jun-ui design tokens so Semi components match
-// the jun-ui look instead of Semi's defaults. This is the "jun-ui = Semi +
-// tokens" layer: jun-ui does not ship a parallel component framework, it themes
-// Semi. Semi defines its vars on <body>, so target body[data-jun-ui-artifact]
-// (present on every jun-ui artifact) to win on specificity regardless of
-// stylesheet order.
-//
-// Color: Semi derives --semi-color-primary/link/focus and light tints from
-// --semi-blue-5, so overriding the 5/6/7 steps recolors the whole primary
-// family from --jun-ui-accent. Lighter tints (blue-0..4) and semantic
-// orange/red/green stay Semi defaults.
-//
-// Geometry: Semi's radius ramp (buttons/inputs/tags use -small, cards use
-// -medium) is re-derived from --jun-ui-radius so corners match jun-ui instead
-// of Semi's 3/6/12px. Font family/size and control heights are hardcoded inside
-// Semi component CSS (no variable to map), so they stay Semi-native — already
-// consistent across Semi pages.
-function renderSemiThemeBridge(registry) {
-  const accent = registry.tokens.find((token) => token.name === "--jun-ui-accent");
-  const rgb = accent ? hexToRgbTriple(accent.value) : null;
-  if (!rgb) return "";
-  const base = `${rgb.r}, ${rgb.g}, ${rgb.b}`;
-  return `body[data-jun-ui-artifact] {
-  --semi-blue-5: ${base};
-  --semi-blue-6: ${darkenTriple(rgb, 0.12)};
-  --semi-blue-7: ${darkenTriple(rgb, 0.24)};
-  --semi-border-radius-small: calc(var(--jun-ui-radius) * 0.75);
-  --semi-border-radius-medium: var(--jun-ui-radius);
-  --semi-border-radius-large: calc(var(--jun-ui-radius) * 1.5);
+function renderDeliveryTokenCssVariables(registry) {
+  const declarations = registry.tokens.map((token) => `  ${token.name}: ${token.value};`).join("\n");
+  return `:root {
+${declarations}
 }`;
+}
+
+function renderSystemTokenCss({ deliveryRegistry, semiTokens }) {
+  return `${renderCssVariables(semiTokens)}
+
+${renderDeliveryTokenCssVariables(deliveryRegistry)}`;
 }
 
 // Token-driven layout primitives, injected into every artifact alongside the
@@ -218,11 +251,11 @@ function renderLayoutUtilities() {
 .jui-scroll-y::-webkit-scrollbar-thumb {
   border: 2px solid transparent;
   border-radius: 999px;
-  background-color: var(--jun-ui-line);
+  background-color: var(--semi-color-border);
   background-clip: padding-box;
 }
 .jui-scroll-y::-webkit-scrollbar-thumb:hover {
-  background-color: var(--jun-ui-muted);
+  background-color: var(--semi-color-text-2);
 }
 /* Semi SideSheet scrolls its own body (Semi default: padding 0 24px — zero
    bottom padding), bypassing .jui-scroll-y, so the contract's scroll end
@@ -235,8 +268,8 @@ body[data-jun-ui-artifact] .semi-sidesheet-body {
 }`;
 }
 
-function hasJunUiTokenDefinitions(text) {
-  return /--jun-ui-bg\s*:/.test(text);
+function hasSemiTokenDefinitions(text) {
+  return /--semi-color-bg-0\s*:/.test(text) && /--semi-color-primary\s*:/.test(text);
 }
 
 function groupTokens(registry) {
@@ -250,38 +283,41 @@ function groupTokens(registry) {
 
 function tokenGroupTitle(group) {
   const titles = {
-    color: "颜色 token",
-    type: "字体 token",
-    spacing: "间距 token",
-    radius: "圆角 token",
-    border: "边框 token",
-    shadow: "阴影 token",
+    "semi-semantic-color": "Semi 语义颜色 token",
+    "semi-data-color": "Semi 数据颜色 token",
+    "semi-palette": "Semi 基础色阶 token",
+    "semi-radius": "Semi 圆角 token",
+    "semi-ai": "Semi AI token",
+    "semi-core": "Semi 核心 token",
+    delivery: "jun-ui 交付变量",
   };
   return titles[group] || `${group} tokens`;
 }
 
 function tokenGroupNavLabel(group) {
   const labels = {
-    color: "颜色",
-    type: "字体",
-    spacing: "间距",
-    radius: "圆角",
-    border: "边框",
-    shadow: "阴影",
+    "semi-semantic-color": "语义色",
+    "semi-data-color": "数据色",
+    "semi-palette": "色阶",
+    "semi-radius": "圆角",
+    "semi-ai": "AI",
+    "semi-core": "核心",
+    delivery: "交付",
   };
   return labels[group] || group;
 }
 
 function tokenGroupIntro(group) {
   const intros = {
-    color: "用于画布、面板、文字、分割线和操作强调的基础颜色。",
-    type: "生成产品工具页面时使用的字号、字体栈和行高。",
-    spacing: "用于页头、网格、堆叠、字段和移动端布局的密集间距。",
-    radius: "让控件和面板保持紧凑一致的形状 token。",
-    border: "用于面板、行、字段和操作强调的轻量分隔 token。",
-    shadow: "用于主要框定表面的层级 token。",
+    "semi-semantic-color": "直接来自 Semi Design System，用于文字、背景、边框、主操作、状态和交互反馈。",
+    "semi-data-color": "直接来自 Semi Design System，用于图表、趋势、分组统计和数据可视化。",
+    "semi-palette": "Semi 的基础色阶，是语义 token 的底层色彩来源。",
+    "semi-radius": "Semi 的圆角阶梯，组件和自定义表面都直接使用这些 token。",
+    "semi-ai": "Semi 为 AI 场景提供的渐变和强调 token。",
+    "semi-core": "Semi 暴露的其他系统 token。",
+    delivery: "jun-ui 只保留文件交付、页面外壳、布局节奏和静态 artifact 需要的变量。",
   };
-  return intros[group] || "用于生成 jun-ui 页面的一组设计 token。";
+  return intros[group] || "来自 Semi Design System 的 token。";
 }
 
 function asConfigArray(value) {
@@ -488,13 +524,13 @@ function renderBundledAppHtml(config, sourceHtml, { jsFiles, cssFiles, dataScrip
 }
 
 async function ensureBundleTokenCss({ tempOutDir, cssFiles, assetsDir }) {
-  const registry = await loadTokenRegistry();
-  const bridge = renderSemiThemeBridge(registry);
-  const tokenCss = `${renderTokenCssVariables(registry)}\n\n${bridge ? `${bridge}\n\n` : ""}${renderLayoutUtilities()}\n\n`;
+  const deliveryRegistry = await loadTokenRegistry();
+  const semiTokens = await loadSemiTokenEntries();
+  const tokenCss = `${renderSystemTokenCss({ deliveryRegistry, semiTokens })}\n\n${renderLayoutUtilities()}\n\n`;
   if (cssFiles.length > 0) {
     const firstCssPath = path.join(tempOutDir, cssFiles[0]);
     const existingCss = await readFile(firstCssPath, "utf8");
-    if (!hasJunUiTokenDefinitions(existingCss)) {
+    if (!hasSemiTokenDefinitions(existingCss)) {
       await writeFile(firstCssPath, `${tokenCss}${existingCss}`, "utf8");
     }
     return cssFiles;
@@ -697,8 +733,8 @@ createRoot(document.getElementById("jun-ui-root")).render(<App />);
 `;
 }
 
-function renderStyles(registry) {
-  return `${renderTokenCssVariables(registry)}
+function renderStyles({ deliveryRegistry, semiTokens }) {
+  return `${renderSystemTokenCss({ deliveryRegistry, semiTokens })}
 
 * {
   box-sizing: border-box;
@@ -706,11 +742,11 @@ function renderStyles(registry) {
 
 body {
   margin: 0;
-  background: var(--jun-ui-bg);
-  color: var(--jun-ui-ink);
-  font-family: var(--jun-ui-font-sans);
-  font-size: var(--jun-ui-font-size-body);
-  line-height: var(--jun-ui-line-height-body);
+  background: var(--semi-color-bg-0);
+  color: var(--semi-color-text-0);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
   letter-spacing: 0;
 }
 
@@ -739,10 +775,10 @@ button {
   justify-content: space-between;
   gap: var(--jun-ui-header-gap);
   padding: var(--jun-ui-header-padding);
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-panel);
-  box-shadow: var(--jun-ui-shadow);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-1);
+  box-shadow: 0 12px 32px var(--semi-color-shadow);
 }
 
 .jun-ui-header-copy {
@@ -755,8 +791,8 @@ button {
   display: inline-flex;
   align-items: center;
   gap: var(--jun-ui-inline-gap);
-  color: var(--jun-ui-muted);
-  font-size: var(--jun-ui-font-size-kicker);
+  color: var(--semi-color-text-2);
+  font-size: 13px;
 }
 
 h1,
@@ -766,18 +802,18 @@ p {
 }
 
 h1 {
-  font-size: var(--jun-ui-font-size-h1);
-  line-height: var(--jun-ui-line-height-heading);
+  font-size: 28px;
+  line-height: 1.18;
 }
 
 h2 {
-  font-size: var(--jun-ui-font-size-h2);
-  line-height: var(--jun-ui-line-height-compact);
+  font-size: 18px;
+  line-height: 1.25;
 }
 
 .jun-ui-muted {
-  color: var(--jun-ui-muted);
-  font-size: var(--jun-ui-font-size-kicker);
+  color: var(--semi-color-text-2);
+  font-size: 13px;
 }
 
 .jun-ui-grid {
@@ -796,8 +832,8 @@ h2 {
 .jun-ui-card strong {
   display: block;
   margin-top: 5px;
-  font-size: var(--jun-ui-font-size-metric);
-  line-height: var(--jun-ui-line-height-heading);
+  font-size: 24px;
+  line-height: 1.18;
 }
 
 .jun-ui-section ul {
@@ -815,11 +851,11 @@ h2 {
   display: grid;
   gap: var(--jun-ui-action-gap);
   align-content: start;
-  border-top: var(--jun-ui-action-border-width) solid var(--jun-ui-line);
+  border-top: var(--jun-ui-action-border-width) solid var(--semi-color-border);
 }
 
 .jun-ui-action-card.primary {
-  border-top-color: var(--jun-ui-accent);
+  border-top-color: var(--semi-color-primary);
 }
 
 .jun-ui-action-head {
@@ -837,10 +873,10 @@ h2 {
   width: 100%;
   min-height: 96px;
   resize: vertical;
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-panel);
-  color: var(--jun-ui-ink);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-1);
+  color: var(--semi-color-text-0);
   padding: var(--jun-ui-field-padding-block) var(--jun-ui-field-padding-inline);
   font: inherit;
   line-height: 1.45;
@@ -860,42 +896,31 @@ footer {
   }
 
   h1 {
-    font-size: var(--jun-ui-font-size-h1-mobile);
+    font-size: 24px;
   }
 }
-
-${renderSemiThemeBridge(registry)}
 
 ${renderLayoutUtilities()}
 `;
 }
 
 function renderTokenPreview(token) {
-  if (token.group === "color") {
+  if (token.group === "semi-semantic-color" || token.group === "semi-data-color" || token.group === "semi-ai") {
     return `<div class="token-swatch" style="background: var(${escapeHtml(token.name)})"></div>`;
   }
-  if (token.group === "type") {
-    if (token.name.includes("font-sans")) {
-      return `<div class="token-type-sample" style="font-family: var(${escapeHtml(token.name)})">Aa</div>`;
-    }
-    if (token.name.includes("line-height")) {
-      return `<div class="token-lines" style="line-height: var(${escapeHtml(token.name)})"><span>行高</span><span>示例文字</span></div>`;
-    }
-    return `<div class="token-type-sample" style="font-size: var(${escapeHtml(token.name)})">Ag</div>`;
+  if (token.group === "semi-palette") {
+    return `<div class="token-swatch" style="background: rgba(var(${escapeHtml(token.name)}), 1)"></div>`;
   }
-  if (token.group === "spacing") {
-    return `<div class="token-spacing-track"><span style="width: var(${escapeHtml(token.name)})"></span></div>`;
-  }
-  if (token.group === "radius") {
+  if (token.group === "semi-radius") {
     return `<div class="token-shape-sample" style="border-radius: var(${escapeHtml(token.name)})"></div>`;
   }
-  if (token.group === "border") {
-    return token.name.includes("width")
-      ? `<div class="token-border-sample" style="border-top: var(${escapeHtml(token.name)}) solid var(--jun-ui-accent)"></div>`
-      : `<div class="token-border-sample" style="border: var(${escapeHtml(token.name)})"></div>`;
-  }
-  if (token.group === "shadow") {
-    return `<div class="token-shadow-sample" style="box-shadow: var(${escapeHtml(token.name)})"></div>`;
+  if (token.group === "delivery") {
+    if (/(?:gap|padding|width|indent)/.test(token.name)) {
+      return `<div class="token-spacing-track"><span style="width: min(var(${escapeHtml(token.name)}), 100%)"></span></div>`;
+    }
+    if (token.name.includes("border-width")) {
+      return `<div class="token-border-sample" style="border-top: var(${escapeHtml(token.name)}) solid var(--semi-color-primary)"></div>`;
+    }
   }
   return '<div class="token-empty-sample"></div>';
 }
@@ -915,7 +940,15 @@ function renderTokenCard(token) {
 }
 
 function renderTokenSections(registry) {
-  const groupOrder = ["color", "type", "spacing", "radius", "border", "shadow"];
+  const groupOrder = [
+    "semi-semantic-color",
+    "semi-data-color",
+    "semi-radius",
+    "semi-palette",
+    "semi-ai",
+    "semi-core",
+    "delivery",
+  ];
   const grouped = groupTokens(registry);
   return groupOrder
     .filter((group) => grouped.has(group))
@@ -937,198 +970,70 @@ ${tokens.map(renderTokenCard).join("\n")}
     .join("\n\n");
 }
 
-function renderTokenCssBlock(registry) {
-  return `${renderTokenCssVariables(registry)}
+function combinedTokenRegistry({ deliveryRegistry, semiTokens }) {
+  return {
+    name: "semi-design-system",
+    description: "Semi Design System 全量 token 面，加少量 jun-ui 文件交付变量。",
+    tokens: [...semiTokens, ...deliveryRegistry.tokens],
+  };
+}
+
+function renderTokenCssBlock({ deliveryRegistry, semiTokens }) {
+  return `${renderSystemTokenCss({ deliveryRegistry, semiTokens })}
 `;
 }
 
-const referenceStyles = [
-  {
-    name: "Polaris-like",
-    source: "Shopify Polaris",
-    principle: "颜色只服务状态和注意力，主体接近黑白灰。",
-    recommended: true,
-    bg: "#F6F6F7",
-    panel: "#FFFFFF",
-    ink: "#202223",
-    muted: "#6D7175",
-    line: "#D2D5D8",
-    accent: "#2C6ECB",
-    accentText: "#FFFFFF",
-    soft: "#EAF2FF",
-    success: "#008060",
-    warning: "#B98900",
-  },
-  {
-    name: "Primer-like",
-    source: "GitHub Primer",
-    principle: "工程产品感强，中性色细腻，强调色偏功能而非装饰。",
-    bg: "#F6F8FA",
-    panel: "#FFFFFF",
-    ink: "#1F2328",
-    muted: "#656D76",
-    line: "#D0D7DE",
-    accent: "#0969DA",
-    accentText: "#FFFFFF",
-    soft: "#DDF4FF",
-    success: "#1A7F37",
-    warning: "#9A6700",
-  },
-  {
-    name: "Spectrum-like",
-    source: "Adobe Spectrum",
-    principle: "专业工具气质，灰阶干净，蓝色只承担操作焦点。",
-    bg: "#F8F8F8",
-    panel: "#FFFFFF",
-    ink: "#222222",
-    muted: "#6E6E6E",
-    line: "#DADADA",
-    accent: "#0D66D0",
-    accentText: "#FFFFFF",
-    soft: "#E8F2FF",
-    success: "#12805C",
-    warning: "#946F00",
-  },
-  {
-    name: "Atlassian-like",
-    source: "Atlassian Design",
-    principle: "复杂 SaaS 工作台，深蓝文字和蓝色操作形成稳定识别。",
-    bg: "#F7F8F9",
-    panel: "#FFFFFF",
-    ink: "#172B4D",
-    muted: "#626F86",
-    line: "#DCDFE4",
-    accent: "#0C66E4",
-    accentText: "#FFFFFF",
-    soft: "#E9F2FF",
-    success: "#216E4E",
-    warning: "#A54800",
-  },
-];
-
-function renderReferenceStyle(style) {
-  const customProperties = [
-    ["--ref-bg", style.bg],
-    ["--ref-panel", style.panel],
-    ["--ref-ink", style.ink],
-    ["--ref-muted", style.muted],
-    ["--ref-line", style.line],
-    ["--ref-accent", style.accent],
-    ["--ref-accent-text", style.accentText],
-    ["--ref-soft", style.soft],
-    ["--ref-success", style.success],
-    ["--ref-warning", style.warning],
-  ]
-    .map(([name, value]) => `${name}: ${value}`)
-    .join("; ");
-  return `        <article class="reference-card${style.recommended ? " is-recommended" : ""}" style="${escapeHtml(customProperties)}">
-          <div class="reference-card-head">
-            <div>
-              <p class="eyebrow">${escapeHtml(style.source)}</p>
-              <h3>${escapeHtml(style.name)}</h3>
-            </div>
-            <div class="reference-card-badges">
-              ${style.recommended ? "<span>推荐基准</span>" : ""}
-              <span>${escapeHtml(style.accent)}</span>
-            </div>
-          </div>
-          <p>${escapeHtml(style.principle)}</p>
-          <div class="reference-application" aria-label="${escapeHtml(style.name)} 应用场景对比">
-            <aside class="reference-sidebar" aria-label="侧边导航">
-              <strong>Ops</strong>
-              <span class="is-active">信号</span>
-              <span>任务</span>
-              <span>系统</span>
-            </aside>
-            <div class="reference-main-preview">
-              <div class="reference-app-topbar">
-                <div>
-                  <span>同一页面真实片段</span>
-                  <strong>Design Ops</strong>
-                </div>
-                <button type="button" class="jui-button">新建任务</button>
-              </div>
-              <div class="reference-filterbar" aria-label="筛选表单">
-                <span>筛选表单</span>
-                <button type="button" class="jui-button">高优先级</button>
-                <button type="button" class="jui-button">7 天</button>
-                <button type="button" class="jui-button">待处理</button>
-              </div>
-              <div class="reference-tiles" aria-label="指标区">
-                <div><span>待处理</span><strong>24</strong><small>+8%</small></div>
-                <div><span>已完成</span><strong>71</strong><small>稳定</small></div>
-                <div><span>风险</span><strong>3</strong><small>复查</small></div>
-              </div>
-              <section class="reference-chart" aria-label="趋势图表">
-                <div class="reference-chart-head">
-                  <span>趋势图表</span>
-                  <strong>7d</strong>
-                </div>
-                <div class="reference-chart-bars">
-                  <i style="--bar: 42%"></i>
-                  <i style="--bar: 55%"></i>
-                  <i style="--bar: 48%"></i>
-                  <i style="--bar: 70%"></i>
-                  <i style="--bar: 62%"></i>
-                  <i style="--bar: 78%"></i>
-                  <i style="--bar: 88%"></i>
-                </div>
-              </section>
-              <section class="reference-table" aria-label="任务表格">
-                <div class="reference-table-head">
-                  <span>任务表格</span>
-                  <span>Owner</span>
-                  <span>状态标签</span>
-                </div>
-                <div class="reference-table-row">
-                  <span>Token 审查</span>
-                  <span>Jun</span>
-                  <strong class="reference-status reference-status--success">就绪</strong>
-                </div>
-                <div class="reference-table-row">
-                  <span>Agent 复制块</span>
-                  <span>AI</span>
-                  <strong class="reference-status reference-status--warning">复查</strong>
-                </div>
-              </section>
-            </div>
-          </div>
-          <div class="reference-swatches" aria-label="${escapeHtml(style.name)} token 摘要">
-            <span style="background: var(--ref-bg)"></span>
-            <span style="background: var(--ref-panel)"></span>
-            <span style="background: var(--ref-ink)"></span>
-            <span style="background: var(--ref-muted)"></span>
-            <span style="background: var(--ref-line)"></span>
-            <span style="background: var(--ref-accent)"></span>
-            <span style="background: var(--ref-success)"></span>
-            <span style="background: var(--ref-warning)"></span>
-          </div>
-        </article>`;
-}
-
-function renderReferenceComparison() {
-  return `    <section class="token-section reference-comparison" id="reference-comparison">
+function renderSemiUsageGuide() {
+  return `    <section class="token-section usage-guide" id="usage-guide">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">调研对比</p>
-          <h2>参考风格对比：应用场景对比</h2>
+          <p class="eyebrow">使用边界</p>
+          <h2>全量 Semi token 面</h2>
         </div>
-        <p>同一页面真实片段，用四套成熟 design system 的气质做近似预览；当前默认 token 已采用 Polaris-like，其他方案保留为参照。</p>
+        <p>Semi Design System 是唯一组件和视觉 token 来源；Context7 用来查 Semi 官方文档，jun-ui 只负责 Builder、file:// artifact、验证和少量交付变量。</p>
       </div>
-      <div class="reference-grid">
-${referenceStyles.map(renderReferenceStyle).join("\n")}
+      <div class="usage-grid">
+        <article>
+          <strong>文字与层级</strong>
+          <p>使用 <code>--semi-color-text-0</code> 到 <code>--semi-color-text-3</code>，不要再经过 jun-ui 自定义文字 token。</p>
+        </article>
+        <article>
+          <strong>背景与表面</strong>
+          <p>使用 <code>--semi-color-bg-0</code> 到 <code>--semi-color-bg-4</code> 和 <code>--semi-color-fill-*</code>。</p>
+        </article>
+        <article>
+          <strong>状态与数据</strong>
+          <p>成功、警告、危险、信息、数据可视化直接使用 <code>--semi-color-success</code>、<code>--semi-color-warning</code>、<code>--semi-color-danger</code> 和 <code>--semi-color-data-*</code>。</p>
+        </article>
+        <article>
+          <strong>jun-ui 交付变量</strong>
+          <p><code>--jun-ui-*</code> 只用于页面最大宽度、外边距、区块间距、滚动留白和 artifact 外壳。</p>
+        </article>
       </div>
     </section>`;
 }
 
-function renderTokenConsoleHtml(registry) {
+function renderTokenConsoleHtml({ deliveryRegistry, semiTokens }) {
+  const registry = combinedTokenRegistry({ deliveryRegistry, semiTokens });
   const grouped = groupTokens(registry);
   const groupCount = grouped.size;
   const tokenCount = registry.tokens.length;
-  const cssBlock = renderTokenCssBlock(registry);
-  const navItems = ["color", "type", "spacing", "radius", "border", "shadow"]
-    .filter((group) => grouped.has(group))
-    .map((group) => `<a href="#${escapeHtml(group)}">${escapeHtml(tokenGroupNavLabel(group))}</a>`)
+  const cssBlock = renderTokenCssBlock({ deliveryRegistry, semiTokens });
+  const navItems = [
+    ["usage-guide", "说明"],
+    ...[
+      "semi-semantic-color",
+      "semi-data-color",
+      "semi-radius",
+      "semi-palette",
+      "semi-ai",
+      "semi-core",
+      "delivery",
+    ]
+      .filter((group) => grouped.has(group))
+      .map((group) => [group, tokenGroupNavLabel(group)]),
+  ]
+    .map(([href, label]) => `<a href="#${escapeHtml(href)}">${escapeHtml(label)}</a>`)
     .join("");
 
   return `<!doctype html>
@@ -1136,17 +1041,17 @@ function renderTokenConsoleHtml(registry) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="generator" content="jun-ui tokens">
-  <title>jun-ui Token 控制台</title>
+  <meta name="generator" content="jun-ui Semi token surface">
+  <title>Semi Token 控制台</title>
   <link rel="stylesheet" href="./assets/tokens.css">
 </head>
-<body data-jun-ui-token-console data-page-type="token-console" data-component-system="jun-ui tokens">
+<body data-jun-ui-token-console data-page-type="token-console" data-component-system="Semi Design System">
   <main class="token-shell" data-jun-ui-static-fallback>
     <header class="token-hero">
       <div class="hero-copy">
-        <p class="eyebrow">jun-ui 设计系统</p>
-        <h1>Token 控制台</h1>
-        <p>给人审查的视觉 token，给 AI 生成页面时复用的稳定复制块，并明确以 file:// artifact 作为验收目标。</p>
+        <p class="eyebrow">Semi Design System · jun-ui delivery</p>
+        <h1>Semi Token 控制台</h1>
+        <p>直接使用 Semi 的全量 token 面和官方组件语义；jun-ui 只保留 file:// artifact、Builder、验证和交付布局变量。</p>
       </div>
       <div class="health-grid" aria-label="Token 控制台状态">
         <div>
@@ -1159,7 +1064,7 @@ function renderTokenConsoleHtml(registry) {
         </div>
         <div>
           <span>来源</span>
-          <strong>JSON</strong>
+          <strong>Semi</strong>
         </div>
       </div>
     </header>
@@ -1173,10 +1078,10 @@ function renderTokenConsoleHtml(registry) {
         <span>筛选</span>
         <input type="search" class="jui-input" data-token-filter placeholder="变量名、角色、值、用途">
       </label>
-      <button type="button" class="jui-button copy-all-button" data-copy-target="aiCopyBlock">复制全部 token</button>
+      <button type="button" class="jui-button copy-all-button" data-copy-target="aiCopyBlock">复制 Semi token 面</button>
     </section>
 
-${renderReferenceComparison()}
+${renderSemiUsageGuide()}
 
 ${renderTokenSections(registry)}
 
@@ -1186,7 +1091,7 @@ ${renderTokenSections(registry)}
           <p class="eyebrow">预览</p>
           <h2>模式预览</h2>
         </div>
-        <p>用同一份 registry token 渲染一个紧凑的工作台片段。</p>
+        <p>用 Semi token 加 jun-ui 交付变量渲染一个紧凑的工作台片段。</p>
       </div>
       <div class="proof-surface">
         <div class="proof-header">
@@ -1216,7 +1121,7 @@ ${renderTokenSections(registry)}
           <p class="eyebrow">Agent 参考</p>
           <h2>AI 复制块</h2>
         </div>
-        <p>后续页面生成需要精确复用 jun-ui 值时，复制这一段即可。</p>
+        <p>后续页面生成需要精确复用 Semi token 面和 jun-ui 交付变量时，复制这一段即可。</p>
       </div>
       <pre id="aiCopyBlock"><code>${escapeHtml(cssBlock)}</code></pre>
     </section>
@@ -1227,8 +1132,8 @@ ${renderTokenSections(registry)}
 `;
 }
 
-function renderTokenConsoleStyles(registry) {
-  return `${renderTokenCssVariables(registry)}
+function renderTokenConsoleStyles({ deliveryRegistry, semiTokens }) {
+  return `${renderSystemTokenCss({ deliveryRegistry, semiTokens })}
 
 * {
   box-sizing: border-box;
@@ -1240,11 +1145,11 @@ html {
 
 body {
   margin: 0;
-  background: var(--jun-ui-bg);
-  color: var(--jun-ui-ink);
-  font-family: var(--jun-ui-font-sans);
-  font-size: var(--jun-ui-font-size-body);
-  line-height: var(--jun-ui-line-height-body);
+  background: var(--semi-color-bg-0);
+  color: var(--semi-color-text-0);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
   letter-spacing: 0;
 }
 
@@ -1258,9 +1163,9 @@ input {
 button {
   min-height: 36px;
   border: 0;
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-accent);
-  color: var(--jun-ui-panel);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-primary);
+  color: var(--semi-color-bg-1);
   padding: 0 var(--jun-ui-field-padding-inline);
   cursor: pointer;
 }
@@ -1281,10 +1186,10 @@ button:hover {
   gap: var(--jun-ui-header-gap);
   align-items: stretch;
   padding: var(--jun-ui-header-padding);
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-panel);
-  box-shadow: var(--jun-ui-shadow);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-1);
+  box-shadow: 0 12px 32px var(--semi-color-shadow);
 }
 
 .hero-copy {
@@ -1303,12 +1208,12 @@ button:hover {
 .proof-metrics span,
 .proof-rows span,
 .token-tools span {
-  color: var(--jun-ui-muted);
+  color: var(--semi-color-text-2);
 }
 
 .eyebrow {
   margin: 0;
-  font-size: var(--jun-ui-font-size-kicker);
+  font-size: 13px;
   text-transform: uppercase;
 }
 
@@ -1320,18 +1225,18 @@ p {
 }
 
 h1 {
-  font-size: var(--jun-ui-font-size-h1);
-  line-height: var(--jun-ui-line-height-heading);
+  font-size: 28px;
+  line-height: 1.18;
 }
 
 h2 {
-  font-size: var(--jun-ui-font-size-h2);
-  line-height: var(--jun-ui-line-height-compact);
+  font-size: 18px;
+  line-height: 1.25;
 }
 
 h3 {
-  font-size: var(--jun-ui-font-size-h2);
-  line-height: var(--jun-ui-line-height-compact);
+  font-size: 18px;
+  line-height: 1.25;
 }
 
 .health-grid {
@@ -1345,14 +1250,14 @@ h3 {
   align-content: center;
   min-height: 90px;
   padding: var(--jun-ui-field-padding-block) var(--jun-ui-field-padding-inline);
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-bg);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-0);
 }
 
 .health-grid strong {
-  font-size: var(--jun-ui-font-size-metric);
-  line-height: var(--jun-ui-line-height-heading);
+  font-size: 24px;
+  line-height: 1.18;
 }
 
 .token-nav {
@@ -1363,11 +1268,11 @@ h3 {
 }
 
 .token-nav a {
-  color: var(--jun-ui-ink);
+  color: var(--semi-color-text-0);
   text-decoration: none;
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-panel);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-1);
   padding: 6px 10px;
 }
 
@@ -1387,10 +1292,10 @@ h3 {
 
 .token-tools input {
   min-height: 38px;
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-panel);
-  color: var(--jun-ui-ink);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-1);
+  color: var(--semi-color-text-0);
   padding: 0 var(--jun-ui-field-padding-inline);
 }
 
@@ -1398,285 +1303,28 @@ h3 {
   margin-top: calc(var(--jun-ui-section-gap) * 1.45);
 }
 
-.reference-grid {
+.usage-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 540px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--jun-ui-grid-gap);
 }
 
-.reference-card {
+.usage-grid article {
   display: grid;
-  gap: var(--jun-ui-stack-gap);
-  border: 1px solid var(--ref-line);
-  border-radius: var(--jun-ui-radius);
-  background: var(--ref-panel);
-  color: var(--ref-ink);
+  gap: var(--jun-ui-inline-gap);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-1);
   padding: var(--jun-ui-field-padding-inline);
-  box-shadow: var(--jun-ui-shadow);
 }
 
-.reference-card.is-recommended {
-  border-color: var(--ref-accent);
-  box-shadow: var(--jun-ui-shadow);
+.usage-grid p {
+  color: var(--semi-color-text-2);
+  font-size: 13px;
 }
 
-.reference-card p,
-.reference-card .eyebrow,
-.reference-card span {
-  color: var(--ref-muted);
-}
-
-.reference-card-head {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: var(--jun-ui-action-gap);
-}
-
-.reference-card-badges {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: end;
-  gap: 6px;
-}
-
-.reference-card-badges span {
-  border: 1px solid var(--ref-line);
-  border-radius: var(--jun-ui-radius);
-  background: var(--ref-soft);
-  color: var(--ref-accent);
-  padding: 3px 7px;
-  font-size: var(--jun-ui-font-size-kicker);
-}
-
-.reference-application {
-  display: grid;
-  grid-template-columns: 116px minmax(0, 1fr);
-  overflow: hidden;
-  border: 1px solid var(--ref-line);
-  border-radius: var(--jun-ui-radius);
-  background: var(--ref-bg);
-  min-height: 390px;
-}
-
-.reference-sidebar {
-  display: grid;
-  align-content: start;
-  gap: 6px;
-  background: var(--ref-panel);
-  border-right: 1px solid var(--ref-line);
-  padding: 14px 10px;
-}
-
-.reference-sidebar strong {
-  color: var(--ref-ink);
-  font-size: 15px;
-  line-height: var(--jun-ui-line-height-compact);
-  margin-bottom: 6px;
-}
-
-.reference-sidebar span {
-  border-radius: 6px;
-  color: var(--ref-muted);
-  padding: 6px 8px;
-  font-size: 12px;
-}
-
-.reference-sidebar .is-active {
-  background: var(--ref-soft);
-  color: var(--ref-accent);
-  font-weight: 650;
-}
-
-.reference-main-preview {
-  display: grid;
-  gap: 10px;
-  min-width: 0;
-  padding: 12px;
-}
-
-.reference-app-topbar,
-.reference-filterbar,
-.reference-tiles div,
-.reference-chart,
-.reference-table {
-  border: 1px solid var(--ref-line);
-  border-radius: var(--jun-ui-radius);
-  background: var(--ref-panel);
-}
-
-.reference-app-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px;
-}
-
-.reference-app-topbar div {
-  display: grid;
-  min-width: 0;
-}
-
-.reference-app-topbar strong {
-  color: var(--ref-ink);
-  font-size: 18px;
-  line-height: var(--jun-ui-line-height-compact);
-}
-
-.reference-app-topbar button {
-  min-height: 30px;
-  flex: 0 0 auto;
-  background: var(--ref-accent);
-  color: var(--ref-accent-text);
-  padding: 0 10px;
-}
-
-.reference-filterbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  padding: 8px;
-}
-
-.reference-filterbar span {
-  flex: 1 1 72px;
-  color: var(--ref-muted);
-  font-size: 12px;
-}
-
-.reference-filterbar button {
-  min-height: 26px;
-  border: 1px solid var(--ref-line);
-  background: var(--ref-bg);
-  color: var(--ref-ink);
-  padding: 0 8px;
-  font-size: 12px;
-}
-
-.reference-tiles {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.reference-tiles div {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-  padding: 9px;
-}
-
-.reference-tiles strong {
-  color: var(--ref-ink);
-  font-size: 22px;
-  line-height: var(--jun-ui-line-height-heading);
-}
-
-.reference-tiles small {
-  color: var(--ref-accent);
-  font-size: 11px;
-}
-
-.reference-chart {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
-}
-
-.reference-chart-head {
-  display: flex;
-  justify-content: space-between;
-  color: var(--ref-muted);
-  font-size: 12px;
-}
-
-.reference-chart-head strong {
-  color: var(--ref-accent);
-}
-
-.reference-chart-bars {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
-  align-items: end;
-  min-height: 76px;
-}
-
-.reference-chart-bars i {
-  display: block;
-  height: var(--bar);
-  min-height: 16px;
-  border-radius: 6px 6px 2px 2px;
-  background: linear-gradient(180deg, var(--ref-accent), var(--ref-soft));
-  border: 1px solid var(--ref-line);
-}
-
-.reference-table {
-  display: grid;
-  overflow: hidden;
-}
-
-.reference-table-head,
-.reference-table-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(54px, 0.7fr) minmax(70px, 0.85fr);
-  gap: 8px;
-  align-items: center;
-  padding: 8px 10px;
-}
-
-.reference-table-head {
-  background: var(--ref-bg);
-  color: var(--ref-muted);
-  font-size: 11px;
-  font-weight: 650;
-}
-
-.reference-table-row {
-  border-top: 1px solid var(--ref-line);
-  color: var(--ref-ink);
-  font-size: 12px;
-}
-
-.reference-table-row > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.reference-status {
-  justify-self: start;
-  border-radius: 999px;
-  padding: 2px 7px;
-  font-size: 11px;
-  line-height: 1.5;
-}
-
-.reference-status--success {
-  background: var(--ref-soft);
-  background: color-mix(in srgb, var(--ref-success) 13%, var(--ref-panel));
-  color: var(--ref-success);
-}
-
-.reference-status--warning {
-  background: var(--ref-soft);
-  background: color-mix(in srgb, var(--ref-warning) 14%, var(--ref-panel));
-  color: var(--ref-warning);
-}
-
-.reference-swatches {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 5px;
-}
-
-.reference-swatches span {
-  aspect-ratio: 1;
-  border: 1px solid var(--ref-line);
-  border-radius: 5px;
+.usage-grid code {
+  color: var(--semi-color-primary);
 }
 
 .section-heading {
@@ -1699,9 +1347,9 @@ h3 {
   gap: var(--jun-ui-action-gap);
   align-items: center;
   min-height: 116px;
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-panel);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-1);
   padding: var(--jun-ui-field-padding-inline);
 }
 
@@ -1721,25 +1369,25 @@ h3 {
 }
 
 .token-card code {
-  color: var(--jun-ui-accent);
+  color: var(--semi-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .token-card strong {
-  line-height: var(--jun-ui-line-height-compact);
+  line-height: 1.25;
 }
 
 .token-card p {
-  font-size: var(--jun-ui-font-size-kicker);
+  font-size: 13px;
 }
 
 .token-copy-button {
   min-width: 58px;
-  background: var(--jun-ui-bg);
-  color: var(--jun-ui-ink);
-  border: var(--jun-ui-border);
+  background: var(--semi-color-bg-0);
+  color: var(--semi-color-text-0);
+  border: 1px solid var(--semi-color-border);
 }
 
 .token-swatch,
@@ -1749,9 +1397,9 @@ h3 {
 .token-empty-sample {
   width: 50px;
   height: 50px;
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-panel);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-1);
 }
 
 .token-type-sample {
@@ -1759,9 +1407,9 @@ h3 {
   place-items: center;
   width: 50px;
   height: 50px;
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-bg);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-0);
   overflow: hidden;
 }
 
@@ -1770,9 +1418,9 @@ h3 {
   align-content: center;
   width: 50px;
   height: 50px;
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-bg);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-0);
   padding: 4px;
   font-size: 10px;
 }
@@ -1780,9 +1428,9 @@ h3 {
 .token-spacing-track {
   width: 50px;
   height: 50px;
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-bg);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-0);
   padding: 8px;
 }
 
@@ -1791,20 +1439,20 @@ h3 {
   max-width: 100%;
   height: 100%;
   border-radius: 4px;
-  background: var(--jun-ui-accent);
+  background: var(--semi-color-primary);
 }
 
 .token-shadow-sample {
-  box-shadow: var(--jun-ui-shadow);
+  box-shadow: 0 12px 32px var(--semi-color-shadow);
 }
 
 .proof-surface {
   display: grid;
   gap: var(--jun-ui-stack-gap);
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-panel);
-  box-shadow: var(--jun-ui-shadow);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-1);
+  box-shadow: 0 12px 32px var(--semi-color-shadow);
   padding: var(--jun-ui-header-padding);
 }
 
@@ -1823,20 +1471,20 @@ h3 {
 .proof-metrics div {
   display: grid;
   padding: var(--jun-ui-field-padding-block) var(--jun-ui-field-padding-inline);
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-bg);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-0);
 }
 
 .proof-metrics strong {
-  font-size: var(--jun-ui-font-size-metric);
-  line-height: var(--jun-ui-line-height-heading);
+  font-size: 24px;
+  line-height: 1.18;
 }
 
 .proof-rows {
   display: grid;
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
   overflow: hidden;
 }
 
@@ -1845,20 +1493,20 @@ h3 {
   justify-content: space-between;
   gap: var(--jun-ui-grid-gap);
   padding: var(--jun-ui-field-padding-block) var(--jun-ui-field-padding-inline);
-  background: var(--jun-ui-panel);
+  background: var(--semi-color-bg-1);
 }
 
 .proof-rows div + div {
-  border-top: var(--jun-ui-border);
+  border-top: 1px solid var(--semi-color-border);
 }
 
 .ai-copy pre {
   margin: 0;
   max-height: 360px;
   overflow: auto;
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-panel);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-1);
   padding: var(--jun-ui-header-padding);
 }
 
@@ -1880,35 +1528,6 @@ h3 {
     grid-template-columns: 1fr;
   }
 
-  .reference-application {
-    grid-template-columns: 1fr;
-  }
-
-  .reference-sidebar {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    border-right: 0;
-    border-bottom: 1px solid var(--ref-line);
-  }
-
-  .reference-sidebar strong {
-    margin-bottom: 0;
-  }
-
-  .reference-tiles {
-    grid-template-columns: 1fr;
-  }
-
-  .reference-app-topbar {
-    align-items: start;
-  }
-
-  .reference-table-head,
-  .reference-table-row {
-    grid-template-columns: minmax(0, 1fr) minmax(42px, 0.55fr) minmax(58px, 0.65fr);
-    gap: 6px;
-    padding: 8px;
-  }
-
   .token-card {
     grid-template-columns: 50px minmax(0, 1fr);
   }
@@ -1918,7 +1537,7 @@ h3 {
   }
 
   h1 {
-    font-size: var(--jun-ui-font-size-h1-mobile);
+    font-size: 24px;
   }
 }
 `;
@@ -1994,10 +1613,11 @@ function dependencyAliases() {
 
 async function writeViteProject({ config, tempRoot }) {
   const srcDir = path.join(tempRoot, "src");
-  const tokenRegistry = await loadTokenRegistry();
+  const deliveryRegistry = await loadTokenRegistry();
+  const semiTokens = await loadSemiTokenEntries();
   await mkdir(srcDir, { recursive: true });
   await writeFile(path.join(srcDir, "main.jsx"), renderReactSource(config), "utf8");
-  await writeFile(path.join(srcDir, "styles.css"), renderStyles(tokenRegistry), "utf8");
+  await writeFile(path.join(srcDir, "styles.css"), renderStyles({ deliveryRegistry, semiTokens }), "utf8");
 }
 
 async function listBuiltFiles(dir, prefix = "") {
@@ -2120,6 +1740,7 @@ function removeAllowedCustomPropertyColorDefinitions(line, { allowTokenDefinitio
   if (!allowTokenDefinitions && !allowReferenceDefinitions) return line;
   const prefixes = [];
   if (allowTokenDefinitions) prefixes.push("--jun-ui-");
+  if (allowTokenDefinitions) prefixes.push("--semi-");
   if (allowReferenceDefinitions) prefixes.push("--ref-");
   const prefixPattern = `(?:${prefixes.map((prefix) => prefix.replaceAll("-", "\\-")).join("|")})`;
   return line.replace(new RegExp(`${prefixPattern}[\\w-]*\\s*:[^;}]*(?:;|$|(?=}))`, "gi"), "");
@@ -2127,6 +1748,21 @@ function removeAllowedCustomPropertyColorDefinitions(line, { allowTokenDefinitio
 
 function stripCssPropertyNames(line) {
   return line.replace(/(^|[;{])\s*(?:--)?[a-zA-Z_-][\w-]*\s*:/g, "$1");
+}
+
+function stripTokenVariableColorUsages(line) {
+  return line
+    .replace(/\b(?:rgb|rgba|hsl|hsla|lab|lch|oklab|oklch)\s*\(\s*var\(--(?:semi|jun-ui|ref)-[\w-]+\)\s*(?:,[^)]*)?\)/gi, "")
+    .replace(/var\(--(?:semi|jun-ui|ref)-[\w-]+(?:\s*,\s*[^)]*)?\)/gi, "");
+}
+
+function stripSemiVendorRules(text) {
+  return text.replace(/[^{}]*\.semi-[^{]*\{[^{}]*\}/g, "");
+}
+
+function isTransparentHexColor(value) {
+  const hex = value.toLowerCase();
+  return hex === "#0000" || hex === "#00000000";
 }
 
 function findBareColorViolations(text, fileLabel, options = {}) {
@@ -2149,18 +1785,20 @@ function findBareColorViolations(text, fileLabel, options = {}) {
     });
   }
   for (const [index, originalLine] of lines.entries()) {
-    const line = removeAllowedCustomPropertyColorDefinitions(originalLine, {
+    const line = stripTokenVariableColorUsages(removeAllowedCustomPropertyColorDefinitions(originalLine, {
       allowTokenDefinitions,
       allowReferenceDefinitions,
-    });
+    }));
     for (const pattern of patterns) {
       pattern.regex.lastIndex = 0;
       const searchLine = pattern.label === "named" ? stripCssPropertyNames(line) : line;
-      const match = pattern.regex.exec(searchLine);
-      if (match) {
+      let match;
+      while ((match = pattern.regex.exec(searchLine)) !== null) {
+        if (pattern.label === "hex" && isTransparentHexColor(match[0])) continue;
         violations.push(`bare color ${match[0]} in ${fileLabel}:${index + 1}`);
         break;
       }
+      if (violations.at(-1)?.endsWith(`${fileLabel}:${index + 1}`)) break;
     }
   }
   return violations;
@@ -2230,14 +1868,18 @@ function hasNativeControlReset(text) {
 }
 
 // Hard gate: a page must consume the Design System, not fork it. Flag source CSS
-// that redefines a --jun-ui-* token or the .jui-stack / .jui-row layout utilities
-// (these are provided by the builder; redefining them drifts the system).
+// that redefines Semi tokens, jun-ui delivery variables, or .jui-stack / .jui-row
+// layout utilities (these are provided by the builder; redefining them drifts
+// the system).
 function findSystemPrimitiveOverrides(text, fileLabel) {
   const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, "");
   const violations = [];
   for (const [index, line] of withoutComments.split(/\r?\n/).entries()) {
+    if (/(?:^|[;{]|\s)--semi-[\w-]+\s*:/.test(line)) {
+      violations.push(`page CSS must consume Semi tokens via var(--semi-*), not redefine them, in ${fileLabel}:${index + 1}`);
+    }
     if (/(?:^|[;{]|\s)--jun-ui-[\w-]+\s*:/.test(line)) {
-      violations.push(`page CSS must consume jun-ui tokens via var(--jun-ui-*), not redefine them, in ${fileLabel}:${index + 1}`);
+      violations.push(`page CSS must consume jun-ui delivery variables via var(--jun-ui-*), not redefine them, in ${fileLabel}:${index + 1}`);
     }
     if (/(?:^|}|,)\s*\.jui-(?:stack|row)(?:--[\w-]+)?\s*[,{]/.test(line)) {
       violations.push(`page CSS must not redefine the jun-ui layout utility .jui-stack / .jui-row in ${fileLabel}:${index + 1}`);
@@ -2307,8 +1949,8 @@ function findNestedScrollAdvisories(text, fileLabel) {
 }
 
 // Advisory (non-blocking): surface hardcoded corner radii in source CSS.
-// Radius comes from the theme bridge (--jun-ui-radius); literal values drift
-// from the system. Allowed idioms: token/alias consumption (var/calc), 0,
+// Radius comes from Semi tokens; literal values drift from the system. Allowed
+// idioms: token/alias consumption (var/calc), 0,
 // 50% circles, and 999px/9999px pills — none of those re-create Semi
 // defaults by hand.
 function findHardcodedRadiusAdvisories(text, fileLabel) {
@@ -2325,7 +1967,7 @@ function findHardcodedRadiusAdvisories(text, fileLabel) {
       if (/var\(/.test(value)) continue;
       if (/^(0|50%|9{3,4}px|inherit|initial|unset)$/.test(value)) continue;
       advisories.push(
-        `hardcoded corner radius "${value}" on "${selector}" — consume var(--jun-ui-radius) (or a local alias) instead, in ${fileLabel}`,
+        `hardcoded corner radius "${value}" on "${selector}" — consume var(--semi-border-radius-medium) (or a local alias) instead, in ${fileLabel}`,
       );
     }
   }
@@ -2351,7 +1993,7 @@ function findAdHocFlexGapAdvisories(text, fileLabel) {
   if (selectors.length === 0) return [];
   const sample = selectors.slice(0, 3).map((selector) => `"${selector}"`).join(", ");
   return [
-    `${selectors.length} ad-hoc flex+gap rule(s) with literal gaps (e.g. ${sample}) — prefer jui-stack / jui-row or gap: var(--jun-ui-*), in ${fileLabel}`,
+    `${selectors.length} ad-hoc flex+gap rule(s) with literal gaps (e.g. ${sample}) — prefer jui-stack / jui-row or token-driven gap values, in ${fileLabel}`,
   ];
 }
 
@@ -2396,11 +2038,11 @@ async function verifyPage(argv) {
   errors.push(...findAssetPathViolations(html));
 
   const combinedArtifactText = [html, ...cssBodies.map(([, body]) => body)].join("\n");
-  if (!combinedArtifactText.includes("--jun-ui-")) {
-    errors.push("artifact must use --jun-ui-* Design System tokens");
+  if (!combinedArtifactText.includes("--semi-")) {
+    errors.push("artifact must use Semi Design System tokens");
   }
-  if (!hasJunUiTokenDefinitions(combinedArtifactText)) {
-    errors.push("artifact must define --jun-ui-* Design System tokens");
+  if (!hasSemiTokenDefinitions(combinedArtifactText)) {
+    errors.push("artifact must define Semi Design System tokens");
   }
 
   if (strict) {
@@ -2464,7 +2106,7 @@ async function verifyPage(argv) {
       if (scanArtifactCssColors) {
         for (const [cssFile, body] of cssBodies) {
           errors.push(
-            ...findBareColorViolations(body, path.relative(process.cwd(), cssFile) || cssFile, {
+            ...findBareColorViolations(stripSemiVendorRules(body), path.relative(process.cwd(), cssFile) || cssFile, {
               allowTokenDefinitions: true,
               allowReferenceDefinitions: isTokenConsole,
             }),
@@ -2656,13 +2298,14 @@ async function tokens(argv) {
       : path.resolve(process.cwd(), flags.out)
     : path.join(repoRoot, "dist", "tokens");
   const assetsDir = path.join(outDir, "assets");
-  const registry = await loadTokenRegistry();
+  const deliveryRegistry = await loadTokenRegistry();
+  const semiTokens = await loadSemiTokenEntries();
   await mkdir(outDir, { recursive: true });
   await rm(path.join(outDir, "index.html"), { force: true });
   await rm(assetsDir, { recursive: true, force: true });
   await mkdir(assetsDir, { recursive: true });
-  await writeFile(path.join(outDir, "index.html"), renderTokenConsoleHtml(registry), "utf8");
-  await writeFile(path.join(assetsDir, "tokens.css"), renderTokenConsoleStyles(registry), "utf8");
+  await writeFile(path.join(outDir, "index.html"), renderTokenConsoleHtml({ deliveryRegistry, semiTokens }), "utf8");
+  await writeFile(path.join(assetsDir, "tokens.css"), renderTokenConsoleStyles({ deliveryRegistry, semiTokens }), "utf8");
   await writeFile(path.join(assetsDir, "tokens.js"), renderTokenConsoleScript(), "utf8");
   console.log(`Generated token console ${path.join(outDir, "index.html")}`);
 }

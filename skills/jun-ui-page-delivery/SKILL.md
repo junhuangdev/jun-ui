@@ -33,6 +33,7 @@ Use this order unless the user or project explicitly overrides it:
 10. Verify the served URL and relevant server-backed behavior for runtime lane delivery.
 11. Run `jun-ui doctor --strict` before substantial Semi implementation and require `ctx7`, `context7-docs`, and `context7-cli`.
 12. Apply the interaction affordance hierarchy when composing controls: one solid primary per view, uniform secondary buttons, link-like inline shortcuts, openable cards distinct from buttons, and passive status that never looks clickable. See `references/affordance-hierarchy.md`.
+13. Apply information architecture and visual hierarchy before composing layout: identify the page job, primary information, secondary information, tertiary information, primary action, and first-screen scan path. See `references/information-architecture.md`.
 
 ## Lane Routing
 
@@ -41,7 +42,7 @@ Ask internally first: does this UI need runtime server reads or writes while the
 | Answer | Lane | Default move |
 | --- | --- | --- |
 | No | Static artifact | Use `jun-ui build` or `jun-ui bundle-app`, then `verify-page --strict`. |
-| Yes | Runtime app | Use the target project's app/server stack, while enforcing jun-ui tokens and Semi patterns. |
+| Yes | Runtime app | Use the target project's app/server stack, while enforcing Semi tokens, `jun-ui` delivery variables, and Semi patterns. |
 | Unclear and costly if wrong | Ask once | Ask whether runtime server data is required. |
 
 Do not make the user manually pick a lane when the request is clear. Respect explicit overrides such as "make this file-openable" or "this must be server-backed."
@@ -61,23 +62,26 @@ Do not make the user manually pick a lane when the request is clear. Respect exp
 - Do not make `jun-ui` own target-project server, database, auth, deployment, or business state.
 - Do not treat source implementation style as more important than the final artifact quality.
 - Do not report a page complete if `jun-ui verify-page <config-or-artifact> --strict` fails. Fix token, asset, or artifact-shape violations first.
-- Do not handwrite page colors when a `--jun-ui-*` token exists. Strict postflight should reject bare page colors unless the exception is explicit and local to a non-UI asset such as a chart series or external brand mark.
+- Do not handwrite page colors when a Semi `--semi-*` token exists. Strict postflight should reject bare page colors unless the exception is explicit and local to a non-UI asset such as a chart series or external brand mark. Use `--jun-ui-*` only for delivery layout variables.
 - Do not treat token injection as enough for delivery. Every native `button`, `input`, `textarea`, or `select` must either be a Semi component output or explicitly carry a `jui-*` control class / `data-jun-ui-control` marker, with `appearance: none` covered by source CSS.
 - Prefer running `jun-ui verify-page` against the page config instead of only the built HTML when a config exists, because config verification can inspect HTML shell, app entry, and source CSS before bundling.
 - Do not mix clickable affordances. Keep one solid primary per view, a uniform secondary-button treatment, openable cards visually distinct from buttons, and passive status labels that never look like controls. Do not show the same action twice in two different styles. See `references/affordance-hierarchy.md`.
+- Do not let low-use content dominate the page. Metadata, debug detail, source paths, explanatory copy, navigation chrome, or secondary information must not be visually larger, louder, or earlier than primary information unless the task explicitly makes it primary. See `references/information-architecture.md`.
 
 ## Workflow
 
 1. Identify the page type, user-visible outcome, and required interactions.
-2. Decide whether Figma is the source, review surface, or not needed for this task.
-3. Use Context7 CLI + Skills through `ctx7` to ground Semi component usage.
-4. Run `jun-ui doctor --strict` if the current session has not already verified `ctx7`, `context7-docs`, and `context7-cli`.
-5. For static artifacts, build with Semi through `jun-ui build`, `jun-ui bundle-app`, or the project's explicitly controlled static build profile.
-6. For static artifacts, produce a file-openable artifact with relative asset paths.
-7. For static artifacts, run `jun-ui verify-page <config-or-artifact> --strict` against the page config when available, otherwise the built artifact.
-8. For static artifacts, open the built artifact through `file://` or a browser-equivalent smoke check.
-9. For runtime apps, use the target project's server/app stack and verify the served URL plus at least one runtime state path.
-10. Confirm native controls are not leaking browser-default UI and report the artifact path or runtime URL, verification evidence, and any interaction gaps.
+2. Classify the information architecture: page job, primary information, secondary information, tertiary information, primary action, and risk if the primary information is missed.
+3. Map visual hierarchy before implementation: first-screen scan path, heading outline, layout area, typography scale, grouping, and action proximity.
+4. Decide whether Figma is the source, review surface, or not needed for this task.
+5. Use Context7 CLI + Skills through `ctx7` to ground Semi component usage.
+6. Run `jun-ui doctor --strict` if the current session has not already verified `ctx7`, `context7-docs`, and `context7-cli`.
+7. For static artifacts, build with Semi through `jun-ui build`, `jun-ui bundle-app`, or the project's explicitly controlled static build profile.
+8. For static artifacts, produce a file-openable artifact with relative asset paths.
+9. For static artifacts, run `jun-ui verify-page <config-or-artifact> --strict` against the page config when available, otherwise the built artifact.
+10. For static artifacts, open the built artifact through `file://` or a browser-equivalent smoke check.
+11. For runtime apps, use the target project's server/app stack and verify the served URL plus at least one runtime state path.
+12. Confirm native controls are not leaking browser-default UI, the visual hierarchy matches information value, and report the artifact path or runtime URL, verification evidence, and any interaction gaps.
 
 ## References
 
@@ -86,6 +90,8 @@ Read `references/delivery-contract.md` when implementing or reviewing page outpu
 Read `references/builder-contract.md` before adding a page config, invoking `jun-ui build`, or deciding whether a target project needs its own frontend toolchain.
 
 Read `references/affordance-hierarchy.md` when composing or reviewing interactive controls — buttons, navigation, filters, inline shortcuts, openable cards, or status labels — so the page uses one consistent clickable language.
+
+Read `references/information-architecture.md` before composing or reviewing page layout — titles, summary regions, metrics, cards, tables, filters, forms, tabs, and first-screen hierarchy — so primary information is visually stronger than secondary information.
 
 Read `/Users/jun/workspace/jun-ui/docs/delivery-lanes.md` before changing lane routing or deciding between static artifact and runtime app delivery.
 

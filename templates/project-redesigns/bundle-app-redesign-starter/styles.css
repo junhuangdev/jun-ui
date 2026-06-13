@@ -1,12 +1,12 @@
 :root {
-  --redesign-bg: var(--jun-ui-bg);
-  --redesign-panel: var(--jun-ui-panel);
-  --redesign-ink: var(--jun-ui-ink);
-  --redesign-muted: var(--jun-ui-muted);
-  --redesign-line: var(--jun-ui-line);
-  --redesign-accent: var(--jun-ui-accent);
-  --redesign-radius: var(--jun-ui-radius);
-  --redesign-shadow: var(--jun-ui-shadow);
+  --redesign-bg: var(--semi-color-bg-0);
+  --redesign-panel: var(--semi-color-bg-1);
+  --redesign-ink: var(--semi-color-text-0);
+  --redesign-muted: var(--semi-color-text-2);
+  --redesign-line: var(--semi-color-border);
+  --redesign-accent: var(--semi-color-primary);
+  --redesign-radius: var(--semi-border-radius-medium);
+  --redesign-shadow: 0 12px 32px var(--semi-color-shadow);
 }
 
 * {

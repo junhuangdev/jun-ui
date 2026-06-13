@@ -13,7 +13,7 @@ Other projects should keep using `jun-ui` in a simple way. A user can ask an age
 | Static artifact | The page can use build-time data, snapshots, local JSON, reports, or bundled client logic. | `file://` openable HTML plus relative assets. | `jun-ui` Builder writes the artifact. |
 | Runtime app | The UI must read or write server state while the user is using it. | A project-owned app served by localhost or deployment. | Target project owns server, routes, data, auth, and deploy. |
 
-The same Design System applies to both lanes: Semi Design System, `--jun-ui-*` tokens, Context7 CLI + Skills for Semi usage, Figma when visual review matters, and the `jun-ui-page-delivery` Skill as the AI entrypoint.
+The same Design System applies to both lanes: Semi Design System, Semi `--semi-*` visual tokens, a small `--jun-ui-*` delivery-variable layer, Context7 CLI + Skills for Semi usage, Figma when visual review matters, and the `jun-ui-page-delivery` Skill as the AI entrypoint.
 
 ## AI Routing Rule
 
@@ -62,7 +62,7 @@ Use this lane for:
 In this lane, `jun-ui` is not the server framework. The target project owns the runtime stack. `jun-ui` provides the UI contract:
 
 - Semi Design System is the default component system.
-- `--jun-ui-*` tokens remain the page token source.
+- Semi `--semi-*` tokens are the page visual token source; `--jun-ui-*` variables remain limited to artifact delivery, page shell, and layout rhythm.
 - Context7 CLI + Skills are used before material Semi API decisions.
 - Figma is used when visual source or review matters.
 - Native controls must be Semi output or carry an explicit `jui-*` / `data-jun-ui-control` contract.
@@ -91,9 +91,9 @@ This repository should keep three visible examples:
 | --- | --- | --- |
 | `examples/static-artifact` | Static artifact | Shows the simplest `jun-ui build` path and writes to `dist/examples/static-artifact`. |
 | `examples/runtime-app` | Runtime app | Shows a small server-backed product surface using the same Design System. |
-| `dist/tokens/index.html` | Static artifact | Shows the shared token source and should remain directly openable. |
+| `dist/tokens/index.html` | Static artifact | Shows the Semi token surface and `jun-ui` delivery variables, and should remain directly openable. |
 
-The token console can also be linked from the runtime example as the shared token reference. It does not need to become server-backed. Runtime examples should read the token registry or a generated CSS asset, not redefine a separate token set.
+The token console can also be linked from the runtime example as the shared Semi token reference. It does not need to become server-backed. Runtime examples should read the generated Semi token CSS plus delivery variables, not redefine a separate token set.
 
 ## Non-Goals
 

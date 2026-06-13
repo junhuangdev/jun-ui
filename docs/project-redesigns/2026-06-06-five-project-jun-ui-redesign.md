@@ -9,13 +9,13 @@ Redo `ai-radar`, `personal-ops`, `flowforge`, `macroPulse`, and `dubforge` as cu
 | Rule | Requirement |
 | --- | --- |
 | UI system | Use `jun-ui` + Semi Design System through the centralized Builder. |
-| Token usage | Target CSS must reference `--jun-ui-*` tokens or aliases derived from them. Do not define page color literals in target CSS. |
+| Token usage | Target CSS must reference Semi `--semi-*` visual tokens and `--jun-ui-*` delivery variables or aliases derived from them. Do not define page color literals in target CSS. |
 | Artifact | Final pages must open through `file://` with relative assets and classic scripts. |
 | Verification | Run `jun-ui verify-page <config-or-artifact> --strict` before reporting a page done. |
 | Runtime boundary | Do not move Builder, React, Semi, Vite, Context7, or Figma dependencies into target projects. |
 | Safety | Preserve existing dirty worktree changes. Do not replace unrelated project files. |
 
-`bundle-app` now injects the shared `--jun-ui-*` token definitions into the bundled CSS. Target project CSS should only consume the tokens.
+`bundle-app` now injects Semi's `--semi-*` token surface plus the small `--jun-ui-*` delivery-variable layer into the bundled CSS. Target project CSS should only consume those tokens or local aliases derived from them.
 
 ## Starter Template
 
@@ -100,7 +100,7 @@ node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs verify-page site/jun-ui.page
 
 ### Redesign
 
-- Replace `--jui-*` and FlowForge hardcoded colors with aliases derived from `--jun-ui-*`.
+- Replace `--jui-*` and FlowForge hardcoded colors with aliases derived from Semi `--semi-*` visual tokens and `--jun-ui-*` delivery variables.
 - Keep two page purposes distinct:
   - `index.html`: local growth-system cockpit.
   - `content-workspace-prototype.html`: staged content workspace.

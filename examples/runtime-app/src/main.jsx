@@ -83,7 +83,7 @@ function RuntimeApp() {
           </Space>
           <Title heading={1}>Runtime App Example</Title>
           <Text type="secondary">
-            A server-backed product surface using the same tokens and Semi Design System contract.
+            A server-backed product surface using Semi tokens and the jun-ui delivery contract.
           </Text>
         </div>
         <Space wrap>

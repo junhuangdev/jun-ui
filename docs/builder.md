@@ -76,7 +76,7 @@ The postflight verifier checks the built artifact and Design System token usage:
 jun-ui verify-page <config-or-artifact> [--out <dir>] [--project-root <dir>] [--strict]
 ```
 
-When passed a config file, it verifies the configured output and scans target project source styles declared by the config. When passed an artifact directory, it verifies `index.html` and local CSS directly. Strict mode rejects handwritten UI colors where `--jun-ui-*` tokens should be used.
+When passed a config file, it verifies the configured output and scans target project source styles declared by the config. When passed an artifact directory, it verifies `index.html` and local CSS directly. Strict mode rejects handwritten UI colors where Semi `--semi-*` tokens should be used.
 
 For an existing target-project workbench that already has its own browser client, use:
 
@@ -94,7 +94,7 @@ Rules:
 - The Builder replaces only the target HTML file and the selected asset directory, so sibling files such as JSON reports stay intact.
 - Vite, React, and Semi dependencies stay in `jun-ui`; target projects receive only built HTML, CSS, and JavaScript.
 - `bundle-app` entries may import React, Semi Design System, and Semi icons from the centralized Builder dependencies instead of adding those packages to the target project.
-- `bundle-app` injects the shared `--jun-ui-*` token definitions into the bundled CSS. Target project styles should reference those tokens instead of defining their own color values.
+- `bundle-app` injects Semi's `--semi-*` token surface plus the small `--jun-ui-*` delivery-variable layer into the bundled CSS. Target project styles should reference Semi visual tokens and delivery variables instead of defining their own color values.
 - The browser output must not require module scripts, a dev server, Context7, or Figma.
 
 ## Config Shape

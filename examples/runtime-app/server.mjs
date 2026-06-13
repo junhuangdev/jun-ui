@@ -10,6 +10,7 @@ import { createServer as createViteServer } from "vite";
 const exampleRoot = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(exampleRoot, "../..");
 const tokenRegistryPath = path.join(repoRoot, "tokens", "jun-ui.tokens.json");
+const semiCssPath = path.join(repoRoot, "node_modules", "@douyinfe", "semi-ui", "dist", "css", "semi.min.css");
 
 const state = {
   mode: "runtime",
@@ -19,7 +20,7 @@ const state = {
   lastRefresh: "2026-06-08T00:00:00.000Z",
   checks: [
     { name: "API route", status: "ready" },
-    { name: "Shared tokens", status: "ready" },
+    { name: "Semi tokens", status: "ready" },
     { name: "Semi UI", status: "ready" }
   ]
 };
@@ -34,12 +35,22 @@ function sendJson(response, statusCode, payload) {
 
 async function sendTokenCss(response) {
   const registry = JSON.parse(await readFile(tokenRegistryPath, "utf8"));
-  const declarations = registry.tokens.map((token) => `  ${token.name}: ${token.value};`).join("\n");
+  const semiCss = await readFile(semiCssPath, "utf8");
+  const seenSemiTokens = new Set();
+  const semiDeclarations = [];
+  const tokenPattern = /(--semi-[\w-]+)\s*:\s*([^;}]+)/g;
+  let match;
+  while ((match = tokenPattern.exec(semiCss)) !== null) {
+    if (seenSemiTokens.has(match[1])) continue;
+    seenSemiTokens.add(match[1]);
+    semiDeclarations.push(`  ${match[1]}: ${match[2].trim()};`);
+  }
+  const deliveryDeclarations = registry.tokens.map((token) => `  ${token.name}: ${token.value};`);
   response.writeHead(200, {
     "content-type": "text/css; charset=utf-8",
     "cache-control": "no-store"
   });
-  response.end(`:root {\n  color-scheme: light;\n${declarations}\n}\n`);
+  response.end(`:root {\n  color-scheme: light;\n${semiDeclarations.join("\n")}\n${deliveryDeclarations.join("\n")}\n}\n`);
 }
 
 const vite = await createViteServer({

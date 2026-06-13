@@ -17,6 +17,7 @@ The goal is not to preserve a specific implementation process. The goal is to ma
 | Visual alignment | Use Figma when design intent, review, or reusable design assets matter. |
 | Direct review | Use `jun-ui build` for `file://` artifacts, or verify the target project's runtime URL when server state is required. |
 | Repeatability | Keep prompts, templates, build profiles, and validation rules in this repository. |
+| Clear information hierarchy | Classify primary information, secondary information, tertiary information, and primary action before composing layout. |
 
 ## System Layers
 
@@ -58,6 +59,19 @@ The system should support:
 - local tools and workbenches;
 - AI-generated prototypes that need product-grade UI.
 
+## Information Architecture And Visual Hierarchy
+
+Read `docs/page-information-architecture.md` before designing a substantial page surface. The page job and information weight table come before layout and components:
+
+| Layer | Decision |
+| --- | --- |
+| Information architecture | What the page is for, what the primary information is, what is secondary information, and what can be deferred. |
+| Visual hierarchy | How region size, position, typography, contrast, grouping, and density express that information weight. |
+| Affordance hierarchy | How actions, openable objects, inline shortcuts, and passive status labels look. |
+| Delivery verification | How the file-openable artifact or runtime app proves the result works. |
+
+This prevents the common AI page failure where metadata, decoration, low-use controls, or debug detail looks more important than the real state, conclusion, or next action. Semi Design System supplies the component surface; Context7 grounds component usage; Figma supports visual review; the Builder and runtime lane rules deliver the result. None of those replace the information architecture step.
+
 ## Delivery Lanes
 
 Use `docs/delivery-lanes.md` as the source of truth for lane selection.
@@ -65,7 +79,7 @@ Use `docs/delivery-lanes.md` as the source of truth for lane selection.
 | Lane | Contract |
 | --- | --- |
 | Static artifact | The final artifact opens through `file://`, uses relative assets, and passes strict verification. |
-| Runtime app | The target project owns server runtime, data, auth, routes, and deployment while reusing `jun-ui` tokens and Semi patterns. |
+| Runtime app | The target project owns server runtime, data, auth, routes, and deployment while reusing Semi tokens, Semi patterns, and `jun-ui` delivery variables. |
 
 The agent should infer the lane from the request. It should ask the user only when runtime server reads or writes are unclear and choosing the wrong lane would cause material rework.
 
@@ -84,7 +98,7 @@ A page is acceptable only when the final artifact:
 
 A runtime app surface is acceptable only when:
 
-- it uses Semi Design System and `--jun-ui-*` tokens for product UI;
+- it uses Semi Design System and Semi `--semi-*` tokens for product UI, with `--jun-ui-*` reserved for delivery layout variables;
 - it uses Context7 CLI + Skills before material Semi API decisions;
 - the target project owns backend routes, API behavior, auth, data, and deployment;
 - the UI exposes loading, empty, error, and saved states when server state is involved;
@@ -110,7 +124,7 @@ A page must use one consistent visual language for "what is clickable." Each int
 | Openable object (cards, rows) | card/row with hover state | not button-shaped |
 | Passive status (counts, labels) | `Tag` / small muted text | must not look clickable |
 
-Express semantic states (warn/success/danger/lock) through Semi props, not bare CSS colors, because jun-ui exposes a single accent token and strict verification rejects bare page colors. The actionable contract, anti-patterns, and a pre-delivery checklist live in `skills/jun-ui-page-delivery/references/affordance-hierarchy.md`.
+Express semantic states (warn/success/danger/lock) through Semi props or Semi semantic tokens, not bare CSS colors. `jun-ui` delivery variables do not define visual state semantics. The actionable contract, anti-patterns, and a pre-delivery checklist live in `skills/jun-ui-page-delivery/references/affordance-hierarchy.md`.
 
 ## Non-Goals
 

@@ -4,11 +4,11 @@
 
 body {
   margin: 0;
-  background: var(--jun-ui-bg);
-  color: var(--jun-ui-ink);
-  font-family: var(--jun-ui-font-sans);
-  font-size: var(--jun-ui-font-size-body);
-  line-height: var(--jun-ui-line-height-body);
+  background: var(--semi-color-bg-0);
+  color: var(--semi-color-text-0);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
   letter-spacing: 0;
 }
 
@@ -31,10 +31,10 @@ select {
 .runtime-fallback,
 .runtime-header,
 .runtime-card {
-  border: var(--jun-ui-border);
-  border-radius: var(--jun-ui-radius);
-  background: var(--jun-ui-panel);
-  box-shadow: var(--jun-ui-shadow);
+  border: 1px solid var(--semi-color-border);
+  border-radius: var(--semi-border-radius-medium);
+  background: var(--semi-color-bg-1);
+  box-shadow: 0 12px 32px var(--semi-color-shadow);
 }
 
 .runtime-fallback,
@@ -75,12 +75,12 @@ select {
 .runtime-card strong {
   display: block;
   margin-top: 4px;
-  font-size: var(--jun-ui-font-size-metric);
-  line-height: var(--jun-ui-line-height-heading);
+  font-size: 24px;
+  line-height: 1.18;
 }
 
 .semi-card {
-  border-radius: var(--jun-ui-radius);
+  border-radius: var(--semi-border-radius-medium);
 }
 
 .semi-table-row-cell {

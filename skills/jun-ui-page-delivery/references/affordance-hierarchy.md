@@ -24,7 +24,7 @@ Apply on every jun-ui page so "what is clickable" reads consistently. A page mus
 
 ## Semantic state colors
 
-jun-ui exposes a single `--jun-ui-accent` and **no** semantic color tokens. Express warn / success / danger / lock states through Semi component props (`Tag color="orange|red|green|blue"`, `Banner type="danger|success"`, `Button type=...`), **never** bare colors in source CSS — `verify-page --strict` rejects bare page colors. Semi carries those colors in its own bundled CSS, which the strict source-CSS scan does not touch.
+Semi owns semantic state color through component props and `--semi-*` tokens. Express warn / success / danger / lock states through Semi component props (`Tag color="orange|red|green|blue"`, `Banner type="danger|success"`, `Button type=...`) or the matching Semi semantic token (`--semi-color-warning`, `--semi-color-success`, `--semi-color-danger`, `--semi-color-primary`), **never** bare colors in source CSS — `verify-page --strict` rejects bare page colors. `jun-ui` delivery variables do not define visual state semantics.
 
 ## Pre-delivery checklist
 

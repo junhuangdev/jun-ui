@@ -10,6 +10,7 @@ The problem is not choosing an implementation style. The problem is result quali
 
 - AI should not rebuild page structure from scratch every time.
 - AI should use a strong component system instead of guessing UI primitives.
+- AI should decide primary information, secondary information, and visual hierarchy before creating page layout.
 - AI should ground component usage in current documentation.
 - Visual intent should have a place to live and be reviewed.
 - Static outputs should be directly inspectable without starting a dev server.
@@ -33,10 +34,11 @@ The selected solution is:
 | Part | Purpose |
 | --- | --- |
 | Semi Design System | Main component system for building product-grade pages quickly. |
+| Information architecture rules | Page-level rules for weighting primary information, secondary information, typography, layout area, grouping, and first-screen hierarchy before components are chosen. |
 | Context7 CLI + Skills | Required AI documentation path for accurate Semi API and pattern usage through `ctx7`. |
 | Figma | Design source, visual review surface, and design-system collaboration bridge. |
 | Builder | Centralized `jun-ui build` command that lets AI use modern UI tooling while still delivering directly openable artifacts. |
-| Runtime UI contract | Rules for using the same tokens, Semi patterns, states, and verification discipline inside server-backed apps. |
+| Runtime UI contract | Rules for using Semi tokens, Semi patterns, `jun-ui` delivery variables, states, and verification discipline inside server-backed apps. |
 | `jun-ui-page-delivery` Skill | Installable entrypoint that tells AI how to choose the correct lane and combine the solution parts inside a target project. |
 
 ## Why This Works
@@ -49,6 +51,7 @@ This repository should hold:
 
 - the problem and solution definition;
 - Skill instructions for AI page delivery;
+- information architecture and visual hierarchy rules for high-quality page composition;
 - templates and references for repeated page work;
 - Builder command and build-output requirements;
 - runtime UI rules and examples;

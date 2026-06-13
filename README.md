@@ -43,6 +43,7 @@ Read `docs/delivery-lanes.md` before changing lane routing, examples, or Skill i
 Every generated page must optimize for the final user-visible result:
 
 - Use Semi Design System as the default component system.
+- Decide the page information architecture and visual hierarchy before choosing layout: identify primary information, secondary information, tertiary information, and the primary action.
 - Use Context7 CLI + Skills before material Semi API or pattern decisions.
 - Treat `ctx7` as the default documentation execution path. MCP is optional.
 - Verify `ctx7`, `context7-docs`, and `context7-cli` with `jun-ui doctor --strict`.
@@ -110,7 +111,7 @@ From this checkout:
 node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs verify-page <config-or-artifact> --strict
 ```
 
-`verify-page` checks the final artifact shape and Design System token usage. In strict mode it rejects handwritten colors in target project source styles or artifact-only CSS, so generated pages do not drift away from `--jun-ui-*` tokens.
+`verify-page` checks the final artifact shape and Design System token usage. In strict mode it rejects handwritten colors in target project source styles or artifact-only CSS, so generated pages do not drift away from Semi `--semi-*` visual tokens and the small `--jun-ui-*` delivery-variable layer.
 
 Repository-owned generated pages follow the same rule. A local HTTP server is acceptable for temporary preview, but final acceptance for `jun-ui` artifacts such as the token console is the built file-openable output, not the server route.
 
@@ -126,7 +127,7 @@ From this checkout:
 node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs tokens
 ```
 
-It writes the mixed human-and-AI token reference to `dist/tokens/index.html` with relative assets.
+It writes the Semi token surface reference to `dist/tokens/index.html` with relative assets. The console exposes Semi's full `--semi-*` token surface and the limited `--jun-ui-*` variables used only for artifact delivery, page shell, and layout rhythm.
 
 ## Examples
 
@@ -156,10 +157,12 @@ Context7 is not added to browser runtime output or target project dependencies.
 - `docs/problem-and-solution.md`: separates the page-building problem from the selected solution.
 - `docs/delivery-lanes.md`: defines static artifact and runtime app lanes.
 - `docs/design-system.md`: defines the current Design System roles, boundaries, and delivery contract.
+- `docs/page-information-architecture.md`: defines how pages weight primary information, secondary information, typography, layout area, grouping, and first-screen hierarchy.
 - `docs/builder.md`: defines the centralized Builder command and target project boundary.
 - `docs/context7.md`: defines the required `ctx7`, `context7-docs`, and `context7-cli` setup and verification path.
 - `skills/jun-ui-page-delivery/references/delivery-contract.md`: concise Skill reference for artifact requirements.
 - `skills/jun-ui-page-delivery/references/builder-contract.md`: concise Skill reference for `jun-ui build`.
+- `skills/jun-ui-page-delivery/references/information-architecture.md`: concise Skill checklist for information architecture and visual hierarchy before page composition.
 
 ## Verification
 

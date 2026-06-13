@@ -103,7 +103,7 @@ const profiles = {
   },
   "project-redesign-starter": {
     title: "Project Redesign Starter",
-    summary: "A shared bundle-app seed for rebuilding local workbenches with jun-ui tokens, Semi controls, and file-openable output.",
+    summary: "A shared bundle-app seed for rebuilding local workbenches with Semi tokens, jun-ui delivery variables, Semi controls, and file-openable output.",
     primary: "Primary work area",
     primaryNote: "Replace this panel with the target project's central queue, report, or task surface.",
     secondary: "Evidence lane",
@@ -224,4 +224,3 @@ const host = document.querySelector("#semi-action-strip");
 if (host) {
   createRoot(host).render(React.createElement(SemiActionStrip));
 }
-
