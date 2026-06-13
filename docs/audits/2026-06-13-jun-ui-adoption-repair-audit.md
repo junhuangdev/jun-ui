@@ -1,6 +1,6 @@
 # jun-ui 使用项目修复审计（2026-06-13）
 
-结论：当前发现 5 个目标项目、6 个静态页面/工作台在使用 `jun-ui`。现有生成物都能通过当前 `jun-ui` 严格校验，并且都已经包含 Semi token 与旧 `--jun-ui-*` 兼容层；但所有目标项目的源 CSS 仍在依赖旧视觉 token，因此后续长任务需要逐个项目迁移到 Semi token 语义表达，而不是只依赖兼容层。
+结论：当前发现 5 个目标项目、6 个静态页面/工作台在使用 `jun-ui`。本审计记录的是移除旧视觉 alias 兼容层前的基线：当时生成物能通过严格校验，并且包含 Semi token 与旧兼容层；现在 Builder 已不再输出旧兼容层，旧页面如果出问题，需要迁移页面源 CSS 到 Semi token 语义表达。
 
 ## 审计范围
 
@@ -98,11 +98,11 @@
 - `macroPulse/site/macro-desk-assets/index.css`
 - `dubforge/frontend/jun-ui-workbench/assets/index.css`
 
-检查结果：
+检查结果（历史基线，兼容层移除前）：
 
 - 全部包含 Semi token，例如 `--semi-color-bg-0`
 - 全部包含旧别名兼容层，例如 `--jun-ui-bg`、`--jun-ui-panel`、`--jun-ui-ink`
-- 这说明当前页面不会仅因为旧别名缺失而立即失效，但源文件仍应迁移，避免长期依赖兼容层
+- 这说明当时页面不会仅因为旧别名缺失而立即失效；兼容层移除后，源文件必须迁移，不能再依赖 Builder 提供这些历史变量
 
 ## 目标仓库状态风险
 

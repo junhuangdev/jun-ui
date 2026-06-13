@@ -37,9 +37,11 @@ Screen area must follow value. A low-use panel should not be larger or louder th
 - Secondary information supports the primary region without competing with it.
 - Tertiary information is quiet, deferred, or compressed.
 - Mobile stacking preserves relationships; paired facts do not separate across unrelated sections.
+- A scan card grid reduces columns before becoming cramped; titles, metadata, tags, and actions stay inside each card with wrapping and overflow checks.
 - The page still obeys the interaction affordance hierarchy in `affordance-hierarchy.md`.
 - Static artifact work still ends in a file-openable `file://` result built by the Builder and checked with `verify-page --strict`.
 - Runtime app work still verifies the served URL and at least one server-backed behavior.
+- The final artifact or runtime URL defines the delivery token layer when page CSS consumes `--jun-ui-*`, and key layout gaps compute to px values instead of disappearing.
 
 ## Reject These Designs
 
@@ -50,6 +52,8 @@ Screen area must follow value. A low-use panel should not be larger or louder th
 - Detached filters, detached save buttons, or actions far away from affected content.
 - More visual weight on navigation or controls than on the result area.
 - A table-first page when the user needs a summary or recommendation first.
+- scan cards whose titles, metadata, tags, buttons, or commands overflow because the grid packs too many columns.
+- runtime or bundled pages whose cards or vertical stacks collapse because the `--jun-ui-*` delivery token layer is missing from the final page.
 
 ## Compact Review Prompt
 
@@ -58,4 +62,3 @@ Use this prompt before delivery:
 ```text
 Review this page for information architecture and visual hierarchy. Identify the primary information, secondary information, tertiary information, primary action, first-screen scan path, heading outline, layout area balance, and any region where visual weight does not match information value. Reject the page if important content is small, late, detached, or visually weaker than low-use content.
 ```
-

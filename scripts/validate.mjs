@@ -152,8 +152,11 @@ const requiredCombinedTerms = [
   "visual hierarchy",
   "primary information",
   "secondary information",
+  "scan card",
+  "overflow-wrap",
   "Semi `--semi-*`",
   "`--jun-ui-*` delivery-variable",
+  "旧视觉 alias",
 ];
 
 const requiredTokenGroups = ["delivery"];
@@ -236,8 +239,44 @@ const staleTerms = [
   "--jun-ui-muted",
   "--jun-ui-line",
   "--jun-ui-accent",
+  "--jun-ui-border",
+  "--jun-ui-font-size-body",
+  "--jun-ui-font-size-kicker",
+  "--jun-ui-font-size-h1",
+  "--jun-ui-font-size-h1-mobile",
+  "--jun-ui-font-size-h2",
+  "--jun-ui-font-size-metric",
+  "--jun-ui-line-height-body",
+  "--jun-ui-line-height-heading",
+  "--jun-ui-line-height-compact",
+  "--jun-ui-micro-gap",
+  "--jun-ui-item-gap",
   "--jun-ui-radius",
   "--jun-ui-shadow",
+];
+
+const legacyJunUiTokenAliases = [
+  "--jun-ui-bg",
+  "--jun-ui-panel",
+  "--jun-ui-ink",
+  "--jun-ui-muted",
+  "--jun-ui-line",
+  "--jun-ui-accent",
+  "--jun-ui-border",
+  "--jun-ui-radius",
+  "--jun-ui-shadow",
+  "--jun-ui-font-sans",
+  "--jun-ui-font-size-body",
+  "--jun-ui-font-size-kicker",
+  "--jun-ui-font-size-h1",
+  "--jun-ui-font-size-h1-mobile",
+  "--jun-ui-font-size-h2",
+  "--jun-ui-font-size-metric",
+  "--jun-ui-line-height-body",
+  "--jun-ui-line-height-heading",
+  "--jun-ui-line-height-compact",
+  "--jun-ui-micro-gap",
+  "--jun-ui-item-gap",
 ];
 
 const errors = [];
@@ -743,6 +782,7 @@ try {
               ".rounded-card { border-radius: 8px; }",
               ".adhoc-row { display: flex; gap: 12px; }",
               ".inner-scroll { max-height: calc(100vh - 200px); overflow-y: auto; }",
+              ".scan-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }",
             ]
           : []),
       ].join("\n"),
@@ -846,6 +886,9 @@ try {
   }
   if (!advisoryOutput.includes("one scroll region")) {
     errors.push("verify-page strict smoke must surface viewport-bound max-height rules as nested-scroll advisories");
+  }
+  if (!advisoryOutput.includes("scan card grid")) {
+    errors.push("verify-page strict smoke must surface cramped scan card grids as advisories");
   }
 
   await mkdir(path.join(artifactOnlyProject, "dist", "assets"), { recursive: true });
@@ -1170,7 +1213,7 @@ try {
   );
   await writeFile(
     path.join(bundleSourceDir, "app", "styles.css"),
-    ".bundle-output { color: var(--jun-ui-accent); background: var(--jun-ui-bg); border-color: var(--jun-ui-line); box-shadow: var(--jun-ui-shadow); font-size: var(--jun-ui-font-size-body); line-height: var(--jun-ui-line-height-body); }\n",
+    ".bundle-output { color: var(--semi-color-primary); background: var(--semi-color-bg-1); border: 1px solid var(--semi-color-border); box-shadow: 0 12px 32px var(--semi-color-shadow); font-size: 14px; line-height: 1.5; padding: var(--jun-ui-field-padding-block) var(--jun-ui-field-padding-inline); }\n",
     "utf8",
   );
   await writeFile(
@@ -1246,31 +1289,14 @@ try {
       errors.push(`bundle-app smoke CSS missing injected Semi token definition ${expected}`);
     }
   }
-  for (const expected of [
-    "--jun-ui-bg",
-    "--jun-ui-panel",
-    "--jun-ui-ink",
-    "--jun-ui-muted",
-    "--jun-ui-line",
-    "--jun-ui-accent",
-    "--jun-ui-border",
-    "--jun-ui-radius",
-    "--jun-ui-shadow",
-    "--jun-ui-font-sans",
-    "--jun-ui-font-size-body",
-    "--jun-ui-font-size-kicker",
-    "--jun-ui-font-size-h1",
-    "--jun-ui-font-size-h1-mobile",
-    "--jun-ui-font-size-h2",
-    "--jun-ui-font-size-metric",
-    "--jun-ui-line-height-body",
-    "--jun-ui-line-height-heading",
-    "--jun-ui-line-height-compact",
-    "--jun-ui-micro-gap",
-    "--jun-ui-item-gap",
-  ]) {
+  for (const expected of ["--jun-ui-page-max-width", "--jun-ui-grid-gap", "--jun-ui-section-gap", "--jun-ui-action-gap"]) {
     if (!new RegExp(`${expected}:`).test(combinedBundleCss)) {
-      errors.push(`bundle-app smoke CSS missing legacy compatibility alias ${expected}`);
+      errors.push(`bundle-app smoke CSS missing injected delivery token definition ${expected}`);
+    }
+  }
+  for (const alias of legacyJunUiTokenAliases) {
+    if (new RegExp(`${alias}:`).test(combinedBundleCss)) {
+      errors.push(`bundle-app smoke CSS must not inject legacy compatibility alias ${alias}`);
     }
   }
   const { stdout: verifyBundleStdout } = await execFileAsync(process.execPath, [

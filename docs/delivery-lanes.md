@@ -63,6 +63,7 @@ In this lane, `jun-ui` is not the server framework. The target project owns the 
 
 - Semi Design System is the default component system.
 - Semi `--semi-*` tokens are the page visual token source; `--jun-ui-*` variables remain limited to artifact delivery, page shell, and layout rhythm.
+- Runtime CSS that consumes `--jun-ui-*` must be served after the shared `jun-ui` token CSS or another Design System-owned token sheet, so missing delivery variables cannot collapse gaps, padding, or card widths.
 - Context7 CLI + Skills are used before material Semi API decisions.
 - Figma is used when visual source or review matters.
 - Native controls must be Semi output or carry an explicit `jui-*` / `data-jun-ui-control` contract.

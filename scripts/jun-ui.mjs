@@ -207,35 +207,6 @@ function renderSystemTokenCss({ deliveryRegistry, semiTokens }) {
 ${renderDeliveryTokenCssVariables(deliveryRegistry)}`;
 }
 
-// Compatibility only for existing bundle-app targets that still reference the
-// pre-Semi-surface visual variables. Do not expose these in the token console
-// or Skill guidance; new page source should use Semi --semi-* tokens directly.
-function renderBundleLegacyCompatibilityCss() {
-  return `:root {
-  --jun-ui-bg: var(--semi-color-bg-0);
-  --jun-ui-panel: var(--semi-color-bg-1);
-  --jun-ui-ink: var(--semi-color-text-0);
-  --jun-ui-muted: var(--semi-color-text-2);
-  --jun-ui-line: var(--semi-color-border);
-  --jun-ui-accent: var(--semi-color-primary);
-  --jun-ui-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --jun-ui-font-size-body: 14px;
-  --jun-ui-font-size-kicker: 13px;
-  --jun-ui-font-size-h1: 28px;
-  --jun-ui-font-size-h1-mobile: 24px;
-  --jun-ui-font-size-h2: 18px;
-  --jun-ui-font-size-metric: 24px;
-  --jun-ui-line-height-body: 1.5;
-  --jun-ui-line-height-heading: 1.18;
-  --jun-ui-line-height-compact: 1.25;
-  --jun-ui-micro-gap: 4px;
-  --jun-ui-item-gap: 8px;
-  --jun-ui-radius: var(--semi-border-radius-medium);
-  --jun-ui-border: 1px solid var(--semi-color-border);
-  --jun-ui-shadow: 0 12px 32px var(--semi-color-shadow);
-}`;
-}
-
 // Token-driven layout primitives, injected into every artifact alongside the
 // tokens. Pages compose vertical/horizontal rhythm from these instead of
 // hand-rolling flex + gap, so spacing/alignment stay consistent by construction
@@ -299,6 +270,10 @@ body[data-jun-ui-artifact] .semi-sidesheet-body {
 
 function hasSemiTokenDefinitions(text) {
   return /--semi-color-bg-0\s*:/.test(text) && /--semi-color-primary\s*:/.test(text);
+}
+
+function hasDeliveryTokenDefinitions(text) {
+  return /--jun-ui-page-max-width\s*:/.test(text) && /--jun-ui-grid-gap\s*:/.test(text);
 }
 
 function groupTokens(registry) {
@@ -557,15 +532,13 @@ async function ensureBundleTokenCss({ tempOutDir, cssFiles, assetsDir }) {
   const semiTokens = await loadSemiTokenEntries();
   const tokenCss = `${renderSystemTokenCss({ deliveryRegistry, semiTokens })}
 
-${renderBundleLegacyCompatibilityCss()}
-
 ${renderLayoutUtilities()}
 
 `;
   if (cssFiles.length > 0) {
     const firstCssPath = path.join(tempOutDir, cssFiles[0]);
     const existingCss = await readFile(firstCssPath, "utf8");
-    if (!hasSemiTokenDefinitions(existingCss)) {
+    if (!hasSemiTokenDefinitions(existingCss) || !hasDeliveryTokenDefinitions(existingCss)) {
       await writeFile(firstCssPath, `${tokenCss}${existingCss}`, "utf8");
     }
     return cssFiles;
@@ -2032,6 +2005,37 @@ function findAdHocFlexGapAdvisories(text, fileLabel) {
   ];
 }
 
+// Advisory (non-blocking): scan cards need enough inline space for a title,
+// one-line summary, metadata, and a small action without forcing text or
+// buttons outside the card. A selector with both card + grid is a strong
+// enough signal to surface undersized minmax() columns for review.
+function findCrampedScanCardGridAdvisories(text, fileLabel) {
+  const advisories = [];
+  const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rulePattern = /([^{}]+)\{([^{}]*)\}/g;
+  let match;
+  while ((match = rulePattern.exec(withoutComments)) !== null) {
+    const selector = match[1].trim().replace(/\s+/g, " ");
+    if (!/card/i.test(selector) || !/grid/i.test(selector)) continue;
+    const body = match[2];
+    if (!/display\s*:\s*grid/.test(body)) continue;
+    const columns = body.match(/grid-template-columns\s*:\s*([^;}]+)/)?.[1]?.trim();
+    if (!columns) continue;
+
+    const pxValues = Array.from(columns.matchAll(/minmax\(\s*(?:min\(\s*100%\s*,\s*)?([\d.]+)px/g)).map(
+      (value) => Number(value[1]),
+    );
+    const hasZeroMin = /minmax\(\s*0\s*,/.test(columns);
+    const hasNarrowMin = pxValues.some((value) => Number.isFinite(value) && value < 320);
+    if (!hasZeroMin && !hasNarrowMin) continue;
+
+    advisories.push(
+      `scan card grid "${selector}" uses cramped columns (${columns}) — use a min column around 320-360px such as minmax(min(100%, 340px), 1fr), and verify card text/actions do not overflow, in ${fileLabel}`,
+    );
+  }
+  return advisories;
+}
+
 // Advisory (non-blocking): the affordance hierarchy allows one solid primary
 // action per view/section. A file is a coarse proxy for a view, so more than
 // one solid primary Button in one source file is surfaced for review rather
@@ -2079,6 +2083,9 @@ async function verifyPage(argv) {
   if (!hasSemiTokenDefinitions(combinedArtifactText)) {
     errors.push("artifact must define Semi Design System tokens");
   }
+  if (/var\(\s*--jun-ui-[\w-]+/.test(combinedArtifactText) && !hasDeliveryTokenDefinitions(combinedArtifactText)) {
+    errors.push("artifact uses jun-ui delivery variables but does not define the jun-ui delivery token layer");
+  }
 
   if (strict) {
     if (sourceFiles.length > 0) {
@@ -2120,6 +2127,7 @@ async function verifyPage(argv) {
           advisories.push(...findNestedScrollAdvisories(body, relativeSource));
           advisories.push(...findHardcodedRadiusAdvisories(body, relativeSource));
           advisories.push(...findAdHocFlexGapAdvisories(body, relativeSource));
+          advisories.push(...findCrampedScanCardGridAdvisories(body, relativeSource));
         }
         if (/\.(?:mjs|js|jsx|ts|tsx)$/i.test(sourceFile)) {
           errors.push(...findNativeControlContractViolations(body, relativeSource));

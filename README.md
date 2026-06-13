@@ -44,6 +44,7 @@ Every generated page must optimize for the final user-visible result:
 
 - Use Semi Design System as the default component system.
 - Decide the page information architecture and visual hierarchy before choosing layout: identify primary information, secondary information, tertiary information, and the primary action.
+- For scan card grids, use enough column width, wrapping, and overflow checks so titles, metadata, and actions stay inside each card.
 - Use Context7 CLI + Skills before material Semi API or pattern decisions.
 - Treat `ctx7` as the default documentation execution path. MCP is optional.
 - Verify `ctx7`, `context7-docs`, and `context7-cli` with `jun-ui doctor --strict`.
@@ -111,7 +112,7 @@ From this checkout:
 node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs verify-page <config-or-artifact> --strict
 ```
 
-`verify-page` checks the final artifact shape and Design System token usage. In strict mode it rejects handwritten colors in target project source styles or artifact-only CSS, so generated pages do not drift away from Semi `--semi-*` visual tokens and the small `--jun-ui-*` delivery-variable layer.
+`verify-page` checks the final artifact shape and Design System token usage. In strict mode it rejects handwritten colors in target project source styles or artifact-only CSS, so generated pages do not drift away from Semi `--semi-*` visual tokens and the small `--jun-ui-*` delivery-variable layer. It also rejects artifacts that consume `--jun-ui-*` delivery variables without defining the delivery token layer.
 
 Repository-owned generated pages follow the same rule. A local HTTP server is acceptable for temporary preview, but final acceptance for `jun-ui` artifacts such as the token console is the built file-openable output, not the server route.
 

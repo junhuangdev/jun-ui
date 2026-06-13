@@ -34,6 +34,8 @@ Use this order unless the user or project explicitly overrides it:
 11. Run `jun-ui doctor --strict` before substantial Semi implementation and require `ctx7`, `context7-docs`, and `context7-cli`.
 12. Apply the interaction affordance hierarchy when composing controls: one solid primary per view, uniform secondary buttons, link-like inline shortcuts, openable cards distinct from buttons, and passive status that never looks clickable. See `references/affordance-hierarchy.md`.
 13. Apply information architecture and visual hierarchy before composing layout: identify the page job, primary information, secondary information, tertiary information, primary action, and first-screen scan path. See `references/information-architecture.md`.
+14. For scan card layouts, prefer readable column width over density; verify text, metadata, tags, and actions wrap inside the card and do not overflow.
+15. For pages that consume `--jun-ui-*` delivery variables, make sure the final artifact or runtime URL includes the delivery token layer before page CSS.
 
 ## Lane Routing
 
@@ -63,10 +65,12 @@ Do not make the user manually pick a lane when the request is clear. Respect exp
 - Do not treat source implementation style as more important than the final artifact quality.
 - Do not report a page complete if `jun-ui verify-page <config-or-artifact> --strict` fails. Fix token, asset, or artifact-shape violations first.
 - Do not handwrite page colors when a Semi `--semi-*` token exists. Strict postflight should reject bare page colors unless the exception is explicit and local to a non-UI asset such as a chart series or external brand mark. Use `--jun-ui-*` only for delivery layout variables.
+- Do not restore old visual alias compatibility in the Builder. 旧视觉 alias 不再是输出合约; migrate old page CSS to Semi `--semi-*` tokens and delivery variables instead.
 - Do not treat token injection as enough for delivery. Every native `button`, `input`, `textarea`, or `select` must either be a Semi component output or explicitly carry a `jui-*` control class / `data-jun-ui-control` marker, with `appearance: none` covered by source CSS.
 - Prefer running `jun-ui verify-page` against the page config instead of only the built HTML when a config exists, because config verification can inspect HTML shell, app entry, and source CSS before bundling.
 - Do not mix clickable affordances. Keep one solid primary per view, a uniform secondary-button treatment, openable cards visually distinct from buttons, and passive status labels that never look like controls. Do not show the same action twice in two different styles. See `references/affordance-hierarchy.md`.
 - Do not let low-use content dominate the page. Metadata, debug detail, source paths, explanatory copy, navigation chrome, or secondary information must not be visually larger, louder, or earlier than primary information unless the task explicitly makes it primary. See `references/information-architecture.md`.
+- Do not report a page complete if the final artifact or runtime URL consumes `--jun-ui-*` variables but does not define the `jun-ui` delivery token layer. Fix the Builder or runtime token sheet instead of hiding the defect with page-local fallback values.
 
 ## Workflow
 
@@ -82,6 +86,8 @@ Do not make the user manually pick a lane when the request is clear. Respect exp
 10. For static artifacts, open the built artifact through `file://` or a browser-equivalent smoke check.
 11. For runtime apps, use the target project's server/app stack and verify the served URL plus at least one runtime state path.
 12. Confirm native controls are not leaking browser-default UI, the visual hierarchy matches information value, and report the artifact path or runtime URL, verification evidence, and any interaction gaps.
+13. Confirm the built artifact or runtime URL defines the `--jun-ui-*` delivery token layer whenever page CSS consumes those variables.
+14. Confirm scan card grids and compact panels do not create text overflow, escaped actions, collapsed gaps, or cramped columns in the inspected viewport.
 
 ## References
 

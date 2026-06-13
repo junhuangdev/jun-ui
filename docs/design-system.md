@@ -72,6 +72,31 @@ Read `docs/page-information-architecture.md` before designing a substantial page
 
 This prevents the common AI page failure where metadata, decoration, low-use controls, or debug detail looks more important than the real state, conclusion, or next action. Semi Design System supplies the component surface; Context7 grounds component usage; Figma supports visual review; the Builder and runtime lane rules deliver the result. None of those replace the information architecture step.
 
+## Scan Cards And Text Overflow
+
+A scan card layout is for fast reading, not for packing maximum items into the smallest possible columns. A card grid that makes titles, metadata, tags, or actions collide has failed the Design System even if the components are technically correct.
+
+| Rule | Required behavior |
+| --- | --- |
+| Column width | Use a minimum card column around 320-360px for content cards; `minmax(min(100%, 340px), 1fr)` is the default starting point. |
+| Text wrapping | Primary text and metadata must use `min-width: 0` and `overflow-wrap: anywhere` where long Chinese, English, IDs, or commands can appear. |
+| Footer actions | Metadata and actions wrap instead of forcing one line; buttons stay inside the card with `max-width: 100%`. |
+| Responsive scan path | When width is tight, reduce columns before reducing readability. A two-column scan card grid is better than three cramped columns. |
+| Verification | After build, inspect the real page or browser-computed layout for `scrollWidth > clientWidth`, clipped text, computed spacing, and actions escaping their card. |
+
+## Delivery Token Injection
+
+Pages may consume `--jun-ui-*` delivery variables for page shell and layout rhythm. The Design System must make those variables real in the final page, not push every page to invent fallback values. If a variable is absent, declarations such as `gap: var(--jun-ui-grid-gap)` are dropped, and dense card/list layouts collapse even though the source looks tokenized.
+
+| Rule | Required behavior |
+| --- | --- |
+| Static artifact / bundle-app | The Builder injects Semi tokens and the `--jun-ui-*` delivery-variable layer into the built CSS. |
+| Runtime app | The project serves the shared token CSS or another Design System-owned token sheet before page CSS. |
+| Page source CSS | It may alias delivery variables locally for readability, but it should not define the canonical `--jun-ui-*` variables itself. |
+| Verification | `verify-page --strict` rejects artifacts that use `--jun-ui-*` variables without defining the delivery token layer; browser checks should confirm key layout gaps compute to px values, not `normal` or `0`. |
+
+旧视觉 alias 不再是 Design System 输出合约。旧页面如果依赖这些历史视觉变量，应迁移页面源 CSS 到 Semi `--semi-*` token 和少量 `--jun-ui-*` delivery-variable，而不是让 Builder 继续注入兼容层。
+
 ## Delivery Lanes
 
 Use `docs/delivery-lanes.md` as the source of truth for lane selection.
@@ -99,6 +124,7 @@ A page is acceptable only when the final artifact:
 A runtime app surface is acceptable only when:
 
 - it uses Semi Design System and Semi `--semi-*` tokens for product UI, with `--jun-ui-*` reserved for delivery layout variables;
+- it serves the shared token CSS or another Design System-owned token sheet before page CSS, so spacing and page padding do not disappear when delivery variables are consumed;
 - it uses Context7 CLI + Skills before material Semi API decisions;
 - the target project owns backend routes, API behavior, auth, data, and deployment;
 - the UI exposes loading, empty, error, and saved states when server state is involved;

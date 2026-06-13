@@ -58,6 +58,8 @@ Primary information is not always a metric. In a report it may be the conclusion
 - Use disclosure for rare detail. Do not make audit logs, source paths, long descriptions, or debug metadata larger than current state.
 - Preserve grouping on mobile. When columns stack, related controls and facts must remain adjacent.
 - Use one scroll region per surface, as defined in the delivery contract.
+- For scan card grids, reduce column count before making cards cramped. Content cards need enough width for title, summary, metadata, tags, and actions; use wrapping and `overflow-wrap` instead of letting long text or buttons escape.
+- When a page consumes `--jun-ui-*` delivery variables, the final artifact or runtime URL must include the delivery token layer before page CSS so vertical stacks and card grids cannot collapse.
 
 ## Typography Rules
 
@@ -81,12 +83,15 @@ Use these checks before delivery:
 | Area test | Screen space roughly follows information value. | Low-use detail gets the largest area; high-value content is cramped. |
 | Proximity test | Controls sit near the content they affect. | The action or filter feels detached from its target. |
 | Mobile stack test | Related items remain adjacent after columns collapse. | The second half of a pair is pushed far below unrelated content. |
+| Overflow and spacing test | No card, footer, button, metadata row, or filter has `scrollWidth > clientWidth`, and key card/list gaps compute to px values in the inspected viewport. | Text or actions escape a card, a grid creates horizontal overflow, or a missing delivery token makes `gap` collapse. |
 
 ## Anti-Patterns
 
 - A huge welcome, explanation, or decorative hero on an operational page while the actual work is below the fold.
 - Large muted metadata and small primary conclusion.
 - A grid of cards where source count, debug info, recommendations, and primary status all look equally important.
+- A scan card grid squeezed into too many columns, causing titles, metadata, tags, or actions to collide or overflow.
+- A runtime or bundled page whose vertical stacks or card grids collapse because the `--jun-ui-*` delivery token layer was absent from the final page.
 - Primary action duplicated in multiple styles.
 - Dense tables placed before a summary that explains what the table means.
 - Filters, tabs, and controls that are visually stronger than the result they manipulate.
