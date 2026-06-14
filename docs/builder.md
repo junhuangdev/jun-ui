@@ -38,6 +38,8 @@ node /Users/jun/workspace/jun-ui/scripts/jun-ui.mjs build <config.json>
 - Do not add Context7, Figma, or builder dependencies to browser runtime output.
 - Run `jun-ui verify-page <config-or-artifact> --strict` after build and before delivery.
 - Verify `ctx7`, `context7-docs`, and `context7-cli` with `jun-ui doctor --strict`.
+- Verify that a new or materially reshaped target project made a startup Design System choice with `jun-ui doctor --strict --adoption-root <project-root>`; this accepts adopted projects and recorded deferred/not-suitable decisions.
+- Verify a target project is ready to consume the Design System with `jun-ui doctor --strict --consumer-root <project-root>`; this checks the project's agent instructions route page/workbench/tool UI work to `jun-ui-design-system`, require Semi Design System, forbid project-local visual tokens, and require strict postflight.
 - Stop before Semi implementation if Context7 CLI + Skills through `ctx7` is unavailable.
 
 For runtime app work, use `docs/delivery-lanes.md` first. The app should still follow the Design System contract, but final verification should prove the served URL and server-backed behavior instead of only checking a built artifact.
@@ -51,6 +53,25 @@ jun-ui doctor --strict
 ```
 
 This checks the installable Builder root, the `ctx7` CLI, and the two Context7 Skills used by AI: `context7-docs` and `context7-cli`.
+
+For a consumer project, also run:
+
+```bash
+jun-ui doctor --strict --adoption-root /path/to/project
+jun-ui doctor --strict --consumer-root /path/to/project
+```
+
+`--adoption-root` checks the target project's agent instruction files (`AGENTS.md`, `.codex/AGENTS.md`, `.agents/AGENTS.md`, `.claude/CLAUDE.md`, or `CLAUDE.md`) for the startup decision record. It requires one of these records:
+
+- `jun-ui adoption decision: adopted`
+- `jun-ui adoption decision: deferred`
+- `jun-ui adoption decision: not-suitable`
+
+Deferred and not-suitable records must include `Reason:` and `Reopen path:` so Jun can continue without the Design System now and still choose to enable it later.
+
+`--consumer-root` is stricter. It is only for adopted projects and checks that UI page work routes to `jun-ui-design-system`, uses Semi Design System, forbids project-local visual tokens, and requires `verify-page --strict`.
+
+When `verify-page --strict` runs with `--project-root` outside the `jun-ui` repository, it also checks the adoption decision gate. This prevents a target project from delivering a strict-verified page before recording whether jun-ui is adopted, deferred, or not suitable.
 
 If the check fails, install the required AI-side Context7 path before implementing substantial Semi Design System pages:
 
@@ -94,7 +115,7 @@ Rules:
 - The Builder replaces only the target HTML file and the selected asset directory, so sibling files such as JSON reports stay intact.
 - Vite, React, and Semi dependencies stay in `jun-ui`; target projects receive only built HTML, CSS, and JavaScript.
 - `bundle-app` entries may import React, Semi Design System, and Semi icons from the centralized Builder dependencies instead of adding those packages to the target project.
-- `bundle-app` injects Semi's `--semi-*` token surface plus the small `--jun-ui-*` delivery-variable layer into the bundled CSS. Target project styles should reference Semi visual tokens and delivery variables instead of defining their own color values.
+- `bundle-app` injects Semi's `--semi-*` token surface plus the small `--jun-ui-*` delivery-variable layer into the bundled CSS. Target project styles should reference Semi visual tokens and delivery variables directly instead of defining their own color values or project-local visual aliases.
 - The browser output must not require module scripts, a dev server, Context7, or Figma.
 
 ## Config Shape

@@ -144,6 +144,9 @@ const requiredCombinedTerms = [
   "context7-docs",
   "context7-cli",
   "jun-ui doctor --strict",
+  "jun-ui doctor --strict --consumer-root",
+  "jun-ui doctor --strict --adoption-root",
+  "jun-ui adoption decision",
   "fileName",
   "assetsDir",
   "actions",
@@ -310,6 +313,21 @@ async function requireFile(file) {
   }
 }
 
+async function writeAdoptedConsumerInstructions(projectDir) {
+  await writeFile(
+    path.join(projectDir, "AGENTS.md"),
+    [
+      "# Consumer Project",
+      "",
+      "jun-ui adoption decision: adopted",
+      "For any product page, workbench, dashboard, settings screen, detail page, or local tool UI, use the `jun-ui-design-system` Skill before implementation.",
+      "Use Semi Design System tokens directly and run `jun-ui verify-page <config-or-artifact> --strict` before delivery.",
+      "Do not define project-local visual tokens.",
+    ].join("\n"),
+    "utf8",
+  );
+}
+
 function removeAllowedCustomPropertyColorDefinitions(line, { allowTokenDefinitions, allowReferenceDefinitions }) {
   if (!allowTokenDefinitions && !allowReferenceDefinitions) return line;
   const prefixes = [];
@@ -466,6 +484,18 @@ if (!skill.includes("jun-ui build")) {
 if (!skill.includes("verify-page")) {
   errors.push("design system skill must require verify-page postflight validation");
 }
+if (!skill.includes("jun-ui doctor --strict --consumer-root")) {
+  errors.push("design system skill must require consumer-root doctor validation");
+}
+if (!skill.includes("jun-ui doctor --strict --adoption-root")) {
+  errors.push("design system skill must require adoption-root doctor validation");
+}
+if (!skill.includes("jun-ui adoption decision")) {
+  errors.push("design system skill must document the jun-ui adoption decision record");
+}
+if (!skill.includes("project-local visual tokens")) {
+  errors.push("design system skill must forbid project-local visual tokens for consumer projects");
+}
 if (!skill.includes("Lane Routing") || !skill.includes("runtime app")) {
   errors.push("design system skill must route static artifact and runtime app lanes");
 }
@@ -479,6 +509,9 @@ if (!builderScript.includes("ensureBundleTokenCss")) {
 }
 if (!builderScript.includes("alias: dependencyAliases()")) {
   errors.push("bundle-app must resolve React and Semi from the centralized Builder dependencies");
+}
+if (!builderScript.includes("checkConsumerProjectContract") || !builderScript.includes("consumer-root")) {
+  errors.push("builder script must expose consumer project contract checks through doctor --consumer-root");
 }
 
 const redesignManifestBody = await requireFile("templates/project-redesigns/five-project-redesign.manifest.json");
@@ -749,12 +782,15 @@ try {
 
   const goodContractProject = path.join(verifyPageSmokeDir, "contract-good");
   const badContractProject = path.join(verifyPageSmokeDir, "contract-bad");
+  const localTokenProject = path.join(verifyPageSmokeDir, "contract-local-token-bad");
+  const noAdoptionProject = path.join(verifyPageSmokeDir, "contract-no-adoption-bad");
   const artifactOnlyProject = path.join(verifyPageSmokeDir, "artifact-only-bad");
   async function writeContractProject(projectDir, { badEntry = false, withAdvisories = false } = {}) {
     const artifactDir = path.join(projectDir, "dist");
     const sourceDir = path.join(projectDir, "src");
     await mkdir(path.join(artifactDir, "assets"), { recursive: true });
     await mkdir(sourceDir, { recursive: true });
+    await writeAdoptedConsumerInstructions(projectDir);
     await writeFile(
       path.join(projectDir, "jun-ui.bundle.json"),
       JSON.stringify({
@@ -779,7 +815,6 @@ try {
     await writeFile(
       path.join(sourceDir, "styles.css"),
       [
-        ":root { --contract-bg: var(--semi-color-bg-0); }",
         "button, input, textarea, select { appearance: none; }",
         ".jui-button { color: var(--semi-color-primary); background: var(--semi-color-bg-1); border-color: var(--semi-color-border); }",
         ...(withAdvisories
@@ -829,6 +864,8 @@ try {
   }
   await writeContractProject(goodContractProject);
   await writeContractProject(badContractProject, { badEntry: true });
+  await writeContractProject(noAdoptionProject);
+  await rm(path.join(noAdoptionProject, "AGENTS.md"), { force: true });
 
   const { stdout: contractStdout } = await execFileAsync(process.execPath, [
     path.join(root, "scripts/jun-ui.mjs"),
@@ -862,6 +899,214 @@ try {
   }
   if (!badContractOutput.includes("native control")) {
     errors.push("verify-page strict smoke must explain native control contract violations");
+  }
+  let noAdoptionVerifyFailed = false;
+  let noAdoptionVerifyOutput = "";
+  try {
+    await execFileAsync(process.execPath, [
+      path.join(root, "scripts/jun-ui.mjs"),
+      "verify-page",
+      path.join(noAdoptionProject, "jun-ui.bundle.json"),
+      "--project-root",
+      noAdoptionProject,
+      "--strict",
+    ]);
+  } catch (error) {
+    noAdoptionVerifyFailed = true;
+    noAdoptionVerifyOutput = `${error.stdout || ""}\n${error.stderr || ""}`;
+  }
+  if (!noAdoptionVerifyFailed) {
+    errors.push("verify-page strict with --project-root must reject projects with no jun-ui adoption decision");
+  }
+  if (!noAdoptionVerifyOutput.includes("adoption decision gate")) {
+    errors.push("verify-page strict with --project-root must explain missing adoption decision gate");
+  }
+
+  await writeContractProject(localTokenProject);
+  await writeFile(
+    path.join(localTokenProject, "src", "styles.css"),
+    [
+      ":root {",
+      "  --project-surface: var(--semi-color-bg-1);",
+      "}",
+      "button, input, textarea, select { appearance: none; }",
+      ".jui-button { color: var(--semi-color-primary); background: var(--project-surface); border-color: var(--semi-color-border); }",
+    ].join("\n"),
+    "utf8",
+  );
+  let localTokenFailed = false;
+  let localTokenOutput = "";
+  try {
+    await execFileAsync(process.execPath, [
+      path.join(root, "scripts/jun-ui.mjs"),
+      "verify-page",
+      path.join(localTokenProject, "jun-ui.bundle.json"),
+      "--project-root",
+      localTokenProject,
+      "--strict",
+    ]);
+  } catch (error) {
+    localTokenFailed = true;
+    localTokenOutput = `${error.stdout || ""}\n${error.stderr || ""}`;
+  }
+  if (!localTokenFailed) {
+    errors.push("verify-page strict smoke must reject project-local visual token definitions");
+  }
+  if (!localTokenOutput.includes("project-local visual token")) {
+    errors.push("verify-page strict smoke must explain project-local visual token definition violations");
+  }
+
+  const goodConsumerRoot = path.join(verifyPageSmokeDir, "consumer-good");
+  const badConsumerRoot = path.join(verifyPageSmokeDir, "consumer-bad");
+  const deferredAdoptionRoot = path.join(verifyPageSmokeDir, "adoption-deferred");
+  const deferredMimicConsumerRoot = path.join(verifyPageSmokeDir, "adoption-deferred-mimic");
+  const missingAdoptionRoot = path.join(verifyPageSmokeDir, "adoption-missing");
+  await mkdir(goodConsumerRoot, { recursive: true });
+  await mkdir(badConsumerRoot, { recursive: true });
+  await mkdir(deferredAdoptionRoot, { recursive: true });
+  await mkdir(deferredMimicConsumerRoot, { recursive: true });
+  await mkdir(missingAdoptionRoot, { recursive: true });
+  await writeAdoptedConsumerInstructions(goodConsumerRoot);
+  await writeFile(
+    path.join(badConsumerRoot, "AGENTS.md"),
+    [
+      "# Consumer Project",
+      "",
+      "Use a local page style and verify it manually before delivery.",
+    ].join("\n"),
+    "utf8",
+  );
+  await writeFile(
+    path.join(deferredAdoptionRoot, "AGENTS.md"),
+    [
+      "# Consumer Project",
+      "",
+      "jun-ui adoption decision: deferred",
+      "Reason: Jun chose to continue without the Design System for this first slice.",
+      "Reopen path: ask Jun again before the next product page, workbench, dashboard, settings screen, detail page, or local tool UI change; if adopted, add the `jun-ui-design-system` contract and run `jun-ui doctor --strict --consumer-root <project-root>`.",
+    ].join("\n"),
+    "utf8",
+  );
+  await writeFile(
+    path.join(deferredMimicConsumerRoot, "AGENTS.md"),
+    [
+      "# Consumer Project",
+      "",
+      "jun-ui adoption decision: deferred",
+      "Reason: Jun chose not to use the Design System yet.",
+      "Reopen path: ask Jun again; if adopted, set `jun-ui adoption decision: adopted`, use the `jun-ui-design-system` Skill, use Semi Design System tokens, run `jun-ui verify-page <config-or-artifact> --strict`, and do not define project-local visual tokens.",
+    ].join("\n"),
+    "utf8",
+  );
+  await writeFile(
+    path.join(missingAdoptionRoot, "AGENTS.md"),
+    [
+      "# Consumer Project",
+      "",
+      "Use whatever UI stack seems fast.",
+    ].join("\n"),
+    "utf8",
+  );
+  const { stdout: goodConsumerDoctorStdout } = await execFileAsync(process.execPath, [
+    path.join(root, "scripts/jun-ui.mjs"),
+    "doctor",
+    "--strict",
+    "--consumer-root",
+    goodConsumerRoot,
+  ]);
+  if (!goodConsumerDoctorStdout.includes("ok consumer project contract")) {
+    errors.push("doctor --strict --consumer-root must accept projects that route page UI work to jun-ui-design-system");
+  }
+  let badConsumerDoctorFailed = false;
+  let badConsumerDoctorOutput = "";
+  try {
+    await execFileAsync(process.execPath, [
+      path.join(root, "scripts/jun-ui.mjs"),
+      "doctor",
+      "--strict",
+      "--consumer-root",
+      badConsumerRoot,
+    ]);
+  } catch (error) {
+    badConsumerDoctorFailed = true;
+    badConsumerDoctorOutput = `${error.stdout || ""}\n${error.stderr || ""}`;
+  }
+  if (!badConsumerDoctorFailed) {
+    errors.push("doctor --strict --consumer-root must reject projects that do not route page UI work to jun-ui-design-system");
+  }
+  if (!badConsumerDoctorOutput.includes("jun-ui adoption decision: adopted")) {
+    errors.push("doctor --strict --consumer-root must explain missing adopted decision state");
+  }
+  let deferredConsumerDoctorFailed = false;
+  try {
+    await execFileAsync(process.execPath, [
+      path.join(root, "scripts/jun-ui.mjs"),
+      "doctor",
+      "--strict",
+      "--consumer-root",
+      deferredAdoptionRoot,
+    ]);
+  } catch {
+    deferredConsumerDoctorFailed = true;
+  }
+  if (!deferredConsumerDoctorFailed) {
+    errors.push("doctor --strict --consumer-root must reject deferred adoption projects until they adopt jun-ui-design-system");
+  }
+  let deferredMimicConsumerDoctorFailed = false;
+  try {
+    await execFileAsync(process.execPath, [
+      path.join(root, "scripts/jun-ui.mjs"),
+      "doctor",
+      "--strict",
+      "--consumer-root",
+      deferredMimicConsumerRoot,
+    ]);
+  } catch {
+    deferredMimicConsumerDoctorFailed = true;
+  }
+  if (!deferredMimicConsumerDoctorFailed) {
+    errors.push("doctor --strict --consumer-root must reject deferred projects even when reopen text mentions adopted-contract terms");
+  }
+
+  const { stdout: adoptedGateStdout } = await execFileAsync(process.execPath, [
+    path.join(root, "scripts/jun-ui.mjs"),
+    "doctor",
+    "--strict",
+    "--adoption-root",
+    goodConsumerRoot,
+  ]);
+  if (!adoptedGateStdout.includes("ok adoption decision gate")) {
+    errors.push("doctor --strict --adoption-root must accept adopted consumer projects");
+  }
+  const { stdout: deferredGateStdout } = await execFileAsync(process.execPath, [
+    path.join(root, "scripts/jun-ui.mjs"),
+    "doctor",
+    "--strict",
+    "--adoption-root",
+    deferredAdoptionRoot,
+  ]);
+  if (!deferredGateStdout.includes("ok adoption decision gate")) {
+    errors.push("doctor --strict --adoption-root must accept recorded deferred adoption decisions");
+  }
+  let missingAdoptionFailed = false;
+  let missingAdoptionOutput = "";
+  try {
+    await execFileAsync(process.execPath, [
+      path.join(root, "scripts/jun-ui.mjs"),
+      "doctor",
+      "--strict",
+      "--adoption-root",
+      missingAdoptionRoot,
+    ]);
+  } catch (error) {
+    missingAdoptionFailed = true;
+    missingAdoptionOutput = `${error.stdout || ""}\n${error.stderr || ""}`;
+  }
+  if (!missingAdoptionFailed) {
+    errors.push("doctor --strict --adoption-root must reject projects with no jun-ui adoption decision");
+  }
+  if (!missingAdoptionOutput.includes("jun-ui adoption decision")) {
+    errors.push("doctor --strict --adoption-root must explain missing jun-ui adoption decision records");
   }
 
   const advisoryProject = path.join(verifyPageSmokeDir, "contract-advisories");
@@ -898,6 +1143,7 @@ try {
   }
 
   await mkdir(path.join(artifactOnlyProject, "dist", "assets"), { recursive: true });
+  await writeAdoptedConsumerInstructions(artifactOnlyProject);
   const artifactOnlyConfig = path.join(artifactOnlyProject, "jun-ui.page.json");
   await writeFile(
     artifactOnlyConfig,
@@ -1201,6 +1447,7 @@ try {
   await mkdir(path.join(bundleSourceDir, "src"), { recursive: true });
   await mkdir(path.join(bundleSourceDir, "app"), { recursive: true });
   await mkdir(path.join(bundleOutDir, "data"), { recursive: true });
+  await writeAdoptedConsumerInstructions(bundleSourceDir);
   await writeFile(path.join(bundleOutDir, "keep.json"), '{"keep":true}\n', "utf8");
   await writeFile(
     path.join(bundleOutDir, "data", "static-data.js"),

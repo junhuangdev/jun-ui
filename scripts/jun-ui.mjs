@@ -16,7 +16,7 @@ function usage() {
     "  jun-ui bundle-app <config.json> [--out <dir>] [--project-root <dir>]",
     "  jun-ui tokens [--out <dir>]",
     "  jun-ui verify-page <config-or-artifact> [--out <dir>] [--project-root <dir>] [--strict]",
-    "  jun-ui doctor [--strict]",
+    "  jun-ui doctor [--strict] [--consumer-root <dir>] [--adoption-root <dir>]",
     "",
     "The build command writes a file-openable artifact with relative assets.",
     "The tokens command writes the file-openable design token console.",
@@ -52,6 +52,11 @@ async function exists(file) {
   } catch {
     return false;
   }
+}
+
+function isPathInside(parentDir, candidatePath) {
+  const relative = path.relative(path.resolve(parentDir), path.resolve(candidatePath));
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
 async function readJson(file) {
@@ -1703,6 +1708,7 @@ async function resolveVerifyTarget(argv) {
       artifactDir: targetPath,
       outputFileName: "index.html",
       sourceFiles: [],
+      projectRoot,
       strict: Boolean(flags.strict),
       scanArtifactCssColors: true,
     };
@@ -1712,6 +1718,7 @@ async function resolveVerifyTarget(argv) {
       artifactDir: path.dirname(targetPath),
       outputFileName: path.basename(targetPath),
       sourceFiles: [],
+      projectRoot,
       strict: Boolean(flags.strict),
       scanArtifactCssColors: true,
     };
@@ -1722,6 +1729,7 @@ async function resolveVerifyTarget(argv) {
     artifactDir: resolveOutDir({ config, flags, configPath, projectRoot }),
     outputFileName: resolveOutputFileName(config),
     sourceFiles: resolveVerifySourceFiles({ config, configPath, projectRoot }),
+    projectRoot,
     strict: Boolean(flags.strict),
     scanArtifactCssColors: false,
   };
@@ -1896,6 +1904,23 @@ function findSystemPrimitiveOverrides(text, fileLabel) {
   return violations;
 }
 
+function findProjectLocalVisualTokenDefinitions(text, fileLabel) {
+  const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  const violations = [];
+  for (const [index, line] of withoutComments.split(/\r?\n/).entries()) {
+    const propertyPattern = /(?:^|[;{])\s*(--[\w-]+)\s*:/g;
+    let match;
+    while ((match = propertyPattern.exec(line)) !== null) {
+      const propertyName = match[1];
+      if (propertyName.startsWith("--semi-") || propertyName.startsWith("--jun-ui-")) continue;
+      violations.push(
+        `project-local visual token definition "${propertyName}" in ${fileLabel}:${index + 1}; consume Semi --semi-* tokens and jun-ui delivery variables directly instead`,
+      );
+    }
+  }
+  return violations;
+}
+
 // Advisory (non-blocking): surface hand-rolled status-tag spans (class names
 // ending in -pill / -chip) so they get migrated to the Semi Tag component
 // instead of silently diverging from the Design System.
@@ -2052,7 +2077,7 @@ function findMultiplePrimaryAdvisories(text, fileLabel) {
 }
 
 async function verifyPage(argv) {
-  const { artifactDir, outputFileName, sourceFiles, strict, scanArtifactCssColors } = await resolveVerifyTarget(argv);
+  const { artifactDir, outputFileName, sourceFiles, projectRoot, strict, scanArtifactCssColors } = await resolveVerifyTarget(argv);
   const htmlPath = path.join(artifactDir, outputFileName);
   const html = await readFile(htmlPath, "utf8");
   const artifactFiles = await listFilesRecursive(artifactDir);
@@ -2064,6 +2089,13 @@ async function verifyPage(argv) {
   const errors = [];
   const advisories = [];
   const isTokenConsole = html.includes("data-jun-ui-token-console");
+
+  if (strict && projectRoot && !isPathInside(repoRoot, projectRoot)) {
+    const adoptionCheck = await checkAdoptionDecisionGate(projectRoot);
+    if (!adoptionCheck.ok) {
+      errors.push(`adoption decision gate: ${adoptionCheck.detail}`);
+    }
+  }
 
   if (!html.includes("data-jun-ui-artifact") && !isTokenConsole) {
     errors.push("artifact must include data-jun-ui-artifact or data-jun-ui-token-console");
@@ -2123,6 +2155,7 @@ async function verifyPage(argv) {
             }),
           );
           errors.push(...findSystemPrimitiveOverrides(body, relativeSource));
+          errors.push(...findProjectLocalVisualTokenDefinitions(body, relativeSource));
           advisories.push(...findClippedScrollAdvisories(body, relativeSource));
           advisories.push(...findNestedScrollAdvisories(body, relativeSource));
           advisories.push(...findHardcodedRadiusAdvisories(body, relativeSource));
@@ -2372,12 +2405,174 @@ async function doctor(argv) {
       detail: skillPath || "missing; install Context7 CLI + Skills before substantial Semi implementation",
     });
   }
+  if (flags["consumer-root"]) {
+    checks.push(await checkConsumerProjectContract(path.resolve(String(flags["consumer-root"]))));
+  }
+  if (flags["adoption-root"]) {
+    checks.push(await checkAdoptionDecisionGate(path.resolve(String(flags["adoption-root"]))));
+  }
   for (const check of checks) {
     console.log(`${check.ok ? "ok" : "missing"} ${check.name}: ${check.detail}`);
   }
   if (flags.strict && checks.some((check) => !check.ok)) {
     process.exitCode = 1;
   }
+}
+
+const consumerInstructionFiles = [
+  "AGENTS.md",
+  ".codex/AGENTS.md",
+  ".agents/AGENTS.md",
+  ".claude/CLAUDE.md",
+  "CLAUDE.md",
+];
+
+const consumerContractTerms = [
+  {
+    id: "jun-ui-design-system",
+    label: "jun-ui-design-system Skill routing",
+    matches: (body) => /\buse\s+(?:the\s+)?`?jun-ui-design-system`?\b/i.test(body) || /必须.*jun-ui-design-system/i.test(body),
+  },
+  {
+    id: "Semi Design System",
+    label: "Semi Design System usage",
+    matches: (body) => /\buse\s+Semi Design System\b/i.test(body) || /必须.*Semi Design System/i.test(body) || /Semi UI/i.test(body),
+  },
+  {
+    id: "verify-page --strict",
+    label: "strict verify-page postflight",
+    matches: (body) => body.includes("verify-page") && body.includes("--strict"),
+  },
+  {
+    id: "project-local visual token",
+    label: "no project-local visual tokens",
+    matches: (body) =>
+      /\bdo not define project-local visual tokens\b/i.test(body) ||
+      /\bforbid[^\n.]*project-local visual token/i.test(body) ||
+      /不得[^\n。]*project-local visual token/i.test(body) ||
+      /禁止[^\n。]*project-local visual token/i.test(body) ||
+      body.includes("不得在项目 CSS 中定义 `project-local visual token`"),
+  },
+];
+
+function parseActiveAdoptionDecisions(body) {
+  const decisions = [];
+  for (const line of body.split(/\r?\n/)) {
+    const match = line.match(/^\s*(?:[-*]\s*)?jun-ui adoption decision\s*:\s*(adopted|deferred|not-suitable|not suitable)\s*$/i);
+    if (!match) continue;
+    decisions.push(match[1].toLowerCase().replace(" ", "-"));
+  }
+  return [...new Set(decisions)];
+}
+
+async function readConsumerInstructionSet(consumerRoot) {
+  const bodies = [];
+  const foundFiles = [];
+  for (const relativeFile of consumerInstructionFiles) {
+    const absoluteFile = path.join(consumerRoot, relativeFile);
+    if (!(await exists(absoluteFile))) continue;
+    foundFiles.push(relativeFile);
+    bodies.push(await readFile(absoluteFile, "utf8"));
+  }
+  return {
+    foundFiles,
+    combined: bodies.join("\n"),
+  };
+}
+
+async function checkConsumerProjectContract(consumerRoot) {
+  const { foundFiles, combined } = await readConsumerInstructionSet(consumerRoot);
+  if (!foundFiles.length) {
+    return {
+      name: "consumer project contract",
+      ok: false,
+      detail: `${consumerRoot} has no agent instruction file (${consumerInstructionFiles.join(", ")})`,
+    };
+  }
+  const activeDecisions = parseActiveAdoptionDecisions(combined);
+  if (activeDecisions.length !== 1 || activeDecisions[0] !== "adopted") {
+    return {
+      name: "consumer project contract",
+      ok: false,
+      detail: activeDecisions.length === 0
+        ? `${consumerRoot} missing active line "jun-ui adoption decision: adopted" in ${foundFiles.join(", ")}`
+        : `${consumerRoot} has active jun-ui adoption decision ${activeDecisions.join(", ")}; expected adopted in ${foundFiles.join(", ")}`,
+    };
+  }
+  const missing = consumerContractTerms
+    .filter((term) => !term.matches(combined))
+    .map((term) => `${term.id} (${term.label})`);
+  return {
+    name: "consumer project contract",
+    ok: missing.length === 0,
+    detail: missing.length
+      ? `${consumerRoot} missing ${missing.join(", ")} in ${foundFiles.join(", ")}`
+      : `${consumerRoot} via ${foundFiles.join(", ")}`,
+  };
+}
+
+async function checkAdoptionDecisionGate(consumerRoot) {
+  const { foundFiles, combined } = await readConsumerInstructionSet(consumerRoot);
+  if (!foundFiles.length) {
+    return {
+      name: "adoption decision gate",
+      ok: false,
+      detail: `${consumerRoot} has no agent instruction file (${consumerInstructionFiles.join(", ")})`,
+    };
+  }
+
+  if (!combined.toLowerCase().includes("jun-ui adoption decision")) {
+    return {
+      name: "adoption decision gate",
+      ok: false,
+      detail: `${consumerRoot} missing jun-ui adoption decision in ${foundFiles.join(", ")}`,
+    };
+  }
+
+  const activeDecisions = parseActiveAdoptionDecisions(combined);
+  if (activeDecisions.length !== 1) {
+    return {
+      name: "adoption decision gate",
+      ok: false,
+      detail: activeDecisions.length === 0
+        ? `${consumerRoot} has jun-ui adoption decision text but no supported active decision line in ${foundFiles.join(", ")}`
+        : `${consumerRoot} has conflicting active jun-ui adoption decisions ${activeDecisions.join(", ")} in ${foundFiles.join(", ")}`,
+    };
+  }
+  const decision = activeDecisions[0];
+  const adopted = decision === "adopted";
+  const deferred = decision === "deferred";
+  const notSuitable = decision === "not-suitable";
+
+  if (adopted) {
+    const consumerCheck = await checkConsumerProjectContract(consumerRoot);
+    return {
+      name: "adoption decision gate",
+      ok: consumerCheck.ok,
+      detail: consumerCheck.ok
+        ? `${consumerRoot} adopted via ${foundFiles.join(", ")}`
+        : `${consumerRoot} says jun-ui adoption decision: adopted, but ${consumerCheck.detail}`,
+    };
+  }
+
+  if (deferred || notSuitable) {
+    const missing = [];
+    if (!/\breason\s*:/i.test(combined) && !combined.includes("原因")) missing.push("Reason");
+    if (!/\breopen path\s*:/i.test(combined) && !combined.includes("重新启用")) missing.push("Reopen path");
+    return {
+      name: "adoption decision gate",
+      ok: missing.length === 0,
+      detail: missing.length
+        ? `${consumerRoot} missing ${missing.join(", ")} for jun-ui adoption decision in ${foundFiles.join(", ")}`
+        : `${consumerRoot} recorded ${decision} via ${foundFiles.join(", ")}`,
+    };
+  }
+
+  return {
+    name: "adoption decision gate",
+    ok: false,
+    detail: `${consumerRoot} has unsupported jun-ui adoption decision ${decision} in ${foundFiles.join(", ")}`,
+  };
 }
 
 async function findOnPath(command) {

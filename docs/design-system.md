@@ -92,10 +92,12 @@ Pages may consume `--jun-ui-*` delivery variables for page shell and layout rhyt
 | --- | --- |
 | Static artifact / bundle-app | The Builder injects Semi tokens and the `--jun-ui-*` delivery-variable layer into the built CSS. |
 | Runtime app | The project serves the shared token CSS or another Design System-owned token sheet before page CSS. |
-| Page source CSS | It may alias delivery variables locally for readability, but it should not define the canonical `--jun-ui-*` variables itself. |
-| Verification | `verify-page --strict` rejects artifacts that use `--jun-ui-*` variables without defining the delivery token layer; browser checks should confirm key layout gaps compute to px values, not `normal` or `0`. |
+| Page source CSS | It consumes Semi `--semi-*` visual tokens and `--jun-ui-*` delivery variables directly; it does not define project-local visual aliases such as `--ck-*`, `--prod-*`, `--panel-bg`, or `--font-size-meta`. |
+| Verification | `verify-page --strict` rejects artifacts that use `--jun-ui-*` variables without defining the delivery token layer, and rejects source CSS that defines project-local visual custom properties. Browser checks should confirm key layout gaps compute to px values, not `normal` or `0`. |
 
 旧视觉 alias 不再是 Design System 输出合约。旧页面如果依赖这些历史视觉变量，应迁移页面源 CSS 到 Semi `--semi-*` token 和少量 `--jun-ui-*` delivery-variable，而不是让 Builder 继续注入兼容层。
+
+业务项目不再拥有视觉 token 命名空间。即使本地变量只是指向 Semi token，例如 `--panel-bg: var(--semi-color-bg-1)`，也会让视觉决策分散到目标项目里；新页面应在实际 CSS 声明中直接使用 `var(--semi-*)` 或 `var(--jun-ui-*)`。
 
 ## Delivery Lanes
 
