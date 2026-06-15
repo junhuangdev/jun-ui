@@ -2061,6 +2061,40 @@ function findCrampedScanCardGridAdvisories(text, fileLabel) {
   return advisories;
 }
 
+// Advisory (non-blocking): surface hand-rolled colored "accent rails" — a
+// single-side border (border-left/right/top/bottom) painted in an emphasis
+// color (primary/brand/semantic) and used as a "this is important" spine. Semi
+// expresses emphasis through elevation, tinted surfaces, the Tag component, and
+// section position; a colored spine is foreign furniture that gets applied
+// inconsistently and drifts. Token-colored rails (e.g.
+// border-left: var(--jun-ui-action-border-width) solid var(--semi-color-primary))
+// slip past the bare-color gate, so surface them here. Neutral single-side
+// borders (dividers in --semi-color-border / fill) are legitimate and ignored.
+function findAccentRailAdvisories(text, fileLabel) {
+  const advisories = [];
+  const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rulePattern = /([^{}]+)\{([^{}]*)\}/g;
+  let match;
+  while ((match = rulePattern.exec(withoutComments)) !== null) {
+    const selector = match[1].trim().replace(/\s+/g, " ");
+    const declPattern = /border-(left|right|top|bottom)\s*:\s*([^;}]+)/g;
+    let decl;
+    while ((decl = declPattern.exec(match[2])) !== null) {
+      const value = decl[2].trim();
+      if (!/\bsolid\b/.test(value)) continue;
+      // Only emphasis colors read as an accent spine; neutral border/fill
+      // tokens are legitimate dividers and full 1px borders.
+      if (!/var\(\s*--[\w-]*(?:primary|brand|accent|success|warning|danger|error|info)\b/i.test(value)) {
+        continue;
+      }
+      advisories.push(
+        `hand-rolled accent rail "${selector}" (border-${decl[1]} in an emphasis color) — express emphasis with Semi-native means (elevation, a tinted surface, a Tag, or section position), not a colored spine, in ${fileLabel}`,
+      );
+    }
+  }
+  return advisories;
+}
+
 // Advisory (non-blocking): the affordance hierarchy allows one solid primary
 // action per view/section. A file is a coarse proxy for a view, so more than
 // one solid primary Button in one source file is surfaced for review rather
@@ -2161,6 +2195,7 @@ async function verifyPage(argv) {
           advisories.push(...findHardcodedRadiusAdvisories(body, relativeSource));
           advisories.push(...findAdHocFlexGapAdvisories(body, relativeSource));
           advisories.push(...findCrampedScanCardGridAdvisories(body, relativeSource));
+          advisories.push(...findAccentRailAdvisories(body, relativeSource));
         }
         if (/\.(?:mjs|js|jsx|ts|tsx)$/i.test(sourceFile)) {
           errors.push(...findNativeControlContractViolations(body, relativeSource));

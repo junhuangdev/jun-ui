@@ -165,6 +165,7 @@ const requiredCombinedTerms = [
   "Semi `--semi-*`",
   "`--jun-ui-*` delivery-variable",
   "旧视觉 alias",
+  "accent rail",
 ];
 
 const requiredTokenGroups = ["delivery"];
